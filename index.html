@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>優兒行動銀行 v4.3</title>
+    <title>優兒行動銀行 v4.4</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
 
     <script>
         (function() {
-            const CURRENT_VERSION = "4.3"; 
+            const CURRENT_VERSION = "4.4"; 
             const cachedVersion = localStorage.getItem('app_version');
             if (cachedVersion !== CURRENT_VERSION) {
                 localStorage.setItem('app_version', CURRENT_VERSION);
@@ -91,17 +91,17 @@
 <script>
 const scriptURL = "https://script.google.com/macros/s/AKfycbzI8YIKfK2h5MVeUOWE1oJq4mHu4KguUOVS_gt0wZdHvSz1AaDaOaE8jCD0rmz9q9SV/exec";
 const TOKEN = "abc123";
-let scanner = null, globalId = "", currentAmt = 0, currentNote = "其他";
+let scanner = null, globalId = "", currentAmt = 0, currentNote = "其他", oldBalance = 0;
 
-// Web Audio 合成音 (掃描嗶聲)
+// Web Audio 合成音 (掃描嗶聲 - 調大音量)
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function playBeep(freq = 800, duration = 0.1) {
+function playBeep(freq = 850, duration = 0.15) {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = "sine";
     osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime); // 從 0.1 調大至 0.3
     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
     osc.connect(gain);
     gain.connect(audioCtx.destination);
@@ -109,15 +109,14 @@ function playBeep(freq = 800, duration = 0.1) {
     osc.stop(audioCtx.currentTime + duration);
 }
 
-// 成功音效 (改用更響亮的連結)
+// 成功音效 (調小音量)
 const successSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
 successSound.crossOrigin = "anonymous";
+successSound.volume = 0.4; // 從預設 1.0 調小至 0.4
 
 function initAndStart() {
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    // 預載成功音效
     successSound.load(); 
-    
     document.getElementById("start-btn").style.display = "none";
     document.getElementById("reader").style.display = "block";
     setTimeout(startScan, 300);
@@ -143,6 +142,7 @@ async function fetchData() {
         const res = await fetch(`${scriptURL}?id=${globalId}&amount=0&token=${TOKEN}`);
         const data = await res.json();
         if (data.status === "success") {
+            oldBalance = data.balance; // 儲存原金額
             document.getElementById("display-id").innerText = "ID: " + globalId;
             document.getElementById("display-name").innerText = data.name;
             document.getElementById("display-balance").innerText = data.balance;
@@ -150,7 +150,6 @@ async function fetchData() {
     } catch (e) { alert("連線失敗"); location.reload(); }
 }
 
-// 修正：移除 Math.max(0, ...)，允許負數輸入
 function modAmt(v) { 
     currentAmt = currentAmt + v; 
     document.getElementById("amount-val").innerText = currentAmt; 
@@ -168,7 +167,6 @@ async function doTrade() {
     const btnOk = document.getElementById("ok-btn");
     const btnCancel = document.getElementById("cancel-btn");
     
-    // UI 反饋：顯示交易進行中
     btnOk.disabled = true;
     btnCancel.disabled = true;
     btnOk.innerText = "⏳ 交易處理中...";
@@ -179,12 +177,21 @@ async function doTrade() {
         const data = await res.json();
         
         if (data.status === "success") {
-            // 先播放聲音
-            successSound.play().catch(e => console.log("音效受阻"));
+            successSound.play().catch(()=>{});
             
-            // 延遲一下再跳 alert，確保聲音能出來
             setTimeout(() => {
-                alert(`✅ 交易成功！\n${data.name} 的新餘額為：${data.newBalance}`);
+                // 豐富化的彈窗資訊
+                alert(
+                    "✅ 交易成功！\n" +
+                    "----------------------\n" +
+                    "【學員 ID】: " + globalId + "\n" +
+                    "【學員姓名】: " + data.name + "\n" +
+                    "【交易項目】: " + currentNote + "\n" +
+                    "【原金額】: " + oldBalance + "\n" +
+                    "【變動金額】: " + (currentAmt > 0 ? "+" : "") + currentAmt + "\n" +
+                    "【新餘額】: " + data.newBalance + "\n" +
+                    "----------------------"
+                );
                 location.reload();
             }, 300);
         } else {
@@ -194,7 +201,7 @@ async function doTrade() {
             btnOk.innerText = "確認交易送出";
         }
     } catch (e) { 
-        alert("網路連線錯誤，請重試"); 
+        alert("網路連線錯誤"); 
         btnOk.disabled = false;
         btnCancel.disabled = false;
         btnOk.innerText = "確認交易送出";
