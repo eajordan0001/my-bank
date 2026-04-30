@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>優兒行動銀行</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e6007e">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        /* 這裡貼入之前提供的 CSS 樣式 */
+        body { font-family: sans-serif; text-align: center; margin: 0; padding: 20px; background-color: #f4f4f4; }
+        .container { background: white; padding: 20px; border-radius: 15px; max-width: 400px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        #reader { width: 100%; margin-bottom: 20px; border-radius: 10px; overflow: hidden; }
+        .info { margin: 15px 0; padding: 15px; border-bottom: 2px dashed #eee; }
+        .name { font-size: 24px; font-weight: bold; color: #e6007e; }
+        .balance { font-size: 36px; font-weight: bold; color: #2c3e50; }
+        input { width: 80%; padding: 15px; font-size: 28px; text-align: center; border: 2px solid #ddd; border-radius: 10px; margin-bottom: 10px; }
+        button { width: 100%; padding: 15px; font-size: 18px; margin-top: 10px; border: none; border-radius: 10px; cursor: pointer; }
+        #ok-btn { background-color: #e6007e; color: white; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>💰 優兒行動銀行</h2>
+        <div id="reader"></div>
+        <div id="result" style="display:none;">
+            <div class="info">
+                <div class="name" id="name">---</div>
+                <div class="balance" id="balance">---</div>
+            </div>
+            <input type="number" id="amount" placeholder="金額" value="0">
+            <button id="ok-btn" onclick="doTrade()">確認送出</button>
+            <button onclick="resetUI()">重新掃描</button>
+        </div>
+    </div>
+
+    <script>
+        // 註冊 Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
+
+        // 這裡貼入之前提供的 JavaScript 邏輯 (包含你的 GAS URL)
+        const scriptURL = "你的_GAS_網址"; 
+        const TOKEN = "abc123";
+        // ... (省略中間的 startScan, doTrade 等函數，請沿用之前的版本)
+    </script>
+</body>
+</html>
