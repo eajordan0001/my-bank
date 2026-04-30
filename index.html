@@ -2,53 +2,185 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>優兒行動銀行</title>
+    
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#e6007e">
     <link rel="apple-touch-icon" href="icon-192.png">
-    
     <script src="https://unpkg.com/html5-qrcode"></script>
+
     <style>
-        /* 這裡貼入之前提供的 CSS 樣式 */
-        body { font-family: sans-serif; text-align: center; margin: 0; padding: 20px; background-color: #f4f4f4; }
-        .container { background: white; padding: 20px; border-radius: 15px; max-width: 400px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        #reader { width: 100%; margin-bottom: 20px; border-radius: 10px; overflow: hidden; }
-        .info { margin: 15px 0; padding: 15px; border-bottom: 2px dashed #eee; }
-        .name { font-size: 24px; font-weight: bold; color: #e6007e; }
-        .balance { font-size: 36px; font-weight: bold; color: #2c3e50; }
-        input { width: 80%; padding: 15px; font-size: 28px; text-align: center; border: 2px solid #ddd; border-radius: 10px; margin-bottom: 10px; }
-        button { width: 100%; padding: 15px; font-size: 18px; margin-top: 10px; border: none; border-radius: 10px; cursor: pointer; }
-        #ok-btn { background-color: #e6007e; color: white; font-weight: bold; }
+        body { font-family: sans-serif; text-align: center; margin: 0; padding: 15px; background-color: #f4f4f4; }
+        .container { background: white; padding: 15px; border-radius: 15px; max-width: 400px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        #reader { width: 100%; margin-bottom: 15px; border-radius: 10px; overflow: hidden; background-color: #000; }
+        
+        .info { margin-bottom: 15px; padding: 10px; border-bottom: 2px dashed #eee; }
+        .name { font-size: 22px; font-weight: bold; color: #e6007e; }
+        .balance { font-size: 32px; font-weight: bold; color: #2c3e50; }
+
+        .amount-section { background: #fff9fb; padding: 10px; border-radius: 10px; margin-bottom: 15px; }
+        input#amount { width: 85%; padding: 10px; font-size: 28px; text-align: center; border: 2px solid #e6007e; border-radius: 10px; margin-bottom: 10px; }
+        
+        .btn-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+        .btn-quick { background: #fff; border: 1px solid #e6007e; color: #e6007e; padding: 10px 0; border-radius: 5px; font-size: 15px; font-weight: bold; }
+        .btn-quick:active { background: #e6007e; color: #fff; }
+
+        /* 項目選擇按鈕：12 個按鈕採用 3 欄配置 */
+        .note-section { text-align: left; margin-bottom: 15px; }
+        .note-label { font-size: 14px; font-weight: bold; color: #666; margin-bottom: 8px; display: block; }
+        .note-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .btn-note { background: #eee; border: none; padding: 12px 0; border-radius: 5px; font-size: 13px; color: #333; }
+        .btn-note.active { background: #333; color: #fff; font-weight: bold; }
+
+        button#ok-btn { background-color: #e6007e; color: white; font-weight: bold; padding: 18px; width: 100%; border: none; border-radius: 10px; font-size: 18px; }
+        button#ok-btn:disabled { background-color: #ccc; }
+        .reset-btn { background-color: #666; color: white; margin-top: 10px; }
+        #start-btn { background-color: #4CAF50; color: white; font-weight: bold; padding: 15px; width: 100%; border: none; border-radius: 10px; }
     </style>
 </head>
+
 <body>
-    <div class="container">
-        <h2>💰 優兒行動銀行</h2>
-        <div id="reader"></div>
-        <div id="result" style="display:none;">
-            <div class="info">
-                <div class="name" id="name">---</div>
-                <div class="balance" id="balance">---</div>
-            </div>
-            <input type="number" id="amount" placeholder="金額" value="0">
-            <button id="ok-btn" onclick="doTrade()">確認送出</button>
-            <button onclick="resetUI()">重新掃描</button>
+<div class="container">
+    <h2>💰 優兒行動銀行</h2>
+
+    <button id="start-btn" onclick="startScan()">點擊開啟相機</button>
+    <div id="reader"></div>
+
+    <div id="result" style="display:none;">
+        <div class="info">
+            <div id="name" class="name">---</div>
+            <div id="balance" class="balance">---</div>
         </div>
+
+        <div class="amount-section">
+            <input type="number" id="amount" value="0">
+            <div class="btn-group">
+                <button class="btn-quick" onclick="addAmt(1)">+1</button>
+                <button class="btn-quick" onclick="addAmt(5)">+5</button>
+                <button class="btn-quick" onclick="addAmt(10)">+10</button>
+                <button class="btn-quick" onclick="addAmt(50)">+50</button>
+                <button class="btn-quick" onclick="addAmt(-1)">-1</button>
+                <button class="btn-quick" onclick="addAmt(-5)">-5</button>
+                <button class="btn-quick" onclick="addAmt(-10)">-10</button>
+                <button class="btn-quick" onclick="addAmt(-50)">-50</button>
+            </div>
+            <button class="btn-quick" style="width:100%" onclick="document.getElementById('amount').value=0">歸零清空</button>
+        </div>
+
+        <div class="note-section">
+            <span class="note-label">選擇交易項目（共 12 項）：</span>
+            <div class="note-group" id="noteGroup">
+                <button class="btn-note active" onclick="setNote(this, '一般交易')">一般交易</button>
+                <button class="btn-note" onclick="setNote(this, '餅乾')">餅乾</button>
+                <button class="btn-note" onclick="setNote(this, '飲料')">飲料</button>
+                <button class="btn-note" onclick="setNote(this, '其他')">其他</button>
+                <button class="btn-note" onclick="setNote(this, '項目 1')">項目 1</button>
+                <button class="btn-note" onclick="setNote(this, '項目 2')">項目 2</button>
+                <button class="btn-note" onclick="setNote(this, '項目 3')">項目 3</button>
+                <button class="btn-note" onclick="setNote(this, '項目 4')">項目 4</button>
+                <button class="btn-note" onclick="setNote(this, '項目 5')">項目 5</button>
+                <button class="btn-note" onclick="setNote(this, '項目 6')">項目 6</button>
+                <button class="btn-note" onclick="setNote(this, '項目 7')">項目 7</button>
+                <button class="btn-note" onclick="setNote(this, '項目 8')">項目 8</button>
+            </div>
+        </div>
+
+        <button id="ok-btn" onclick="doTrade()">確認送出交易</button>
+        <button class="reset-btn" onclick="resetUI()">取消掃描</button>
     </div>
+</div>
 
-    <script>
-        // 註冊 Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js');
-            });
+<script>
+const scriptURL = "https://script.google.com/macros/s/AKfycbzI8YIKfK2h5MVeUOWE1oJq4mHu4KguUOVS_gt0wZdHvSz1AaDaOaE8jCD0rmz9q9SV/exec";
+const TOKEN = "abc123";
+
+let scanner, globalId = "", tid = "", currentNote = "一般交易";
+const successSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); });
+}
+
+function addAmt(val) {
+    let input = document.getElementById("amount");
+    input.value = (parseInt(input.value) || 0) + val;
+}
+
+function setNote(btn, noteText) {
+    document.querySelectorAll('.btn-note').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentNote = noteText;
+}
+
+async function startScan() {
+    document.getElementById("result").style.display = "none";
+    document.getElementById("start-btn").style.display = "none";
+    if (!scanner) scanner = new Html5Qrcode("reader");
+    try {
+        await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
+            globalId = text.trim();
+            tid = "T" + Date.now();
+            scanner.stop().then(() => { fetchData(); });
+        });
+    } catch (err) {
+        alert("相機開啟失敗。");
+        document.getElementById("start-btn").style.display = "block";
+    }
+}
+
+async function fetchData() {
+    try {
+        const res = await fetch(`${scriptURL}?id=${globalId}&amount=0&token=${TOKEN}`);
+        const data = await res.json();
+        if (data.status === "success") {
+            document.getElementById("name").innerText = data.name;
+            document.getElementById("balance").innerText = "餘額: " + data.balance;
+            document.getElementById("result").style.display = "block";
+        } else {
+            alert(data.message);
+            resetUI();
         }
+    } catch (e) { alert("讀取失敗"); resetUI(); }
+}
 
-        // 這裡貼入之前提供的 JavaScript 邏輯 (包含你的 GAS URL)
-        const scriptURL = "你的_GAS_網址"; 
-        const TOKEN = "abc123";
-        // ... (省略中間的 startScan, doTrade 等函數，請沿用之前的版本)
-    </script>
+async function doTrade() {
+    const btn = document.getElementById("ok-btn");
+    let amt = parseInt(document.getElementById("amount").value) || 0;
+    if (amt === 0) return alert("請輸入金額");
+
+    if (!confirm(`對象: ${document.getElementById("name").innerText}\n項目: ${currentNote}\n金額: ${amt}\n確認執行？`)) return;
+
+    btn.disabled = true;
+    btn.innerText = "處理中...";
+
+    try {
+        const url = `${scriptURL}?id=${globalId}&amount=${amt}&tid=${tid}&token=${TOKEN}&note=${encodeURIComponent(currentNote)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.status === "success") {
+            if (navigator.vibrate) navigator.vibrate(100);
+            successSound.play().catch(() => {});
+            alert(`✅ 交易成功！\n新餘額：${data.newBalance}`);
+            resetUI();
+        } else {
+            alert("❌ 失敗: " + data.message);
+            btn.disabled = false;
+            btn.innerText = "確認送出交易";
+        }
+    } catch (e) { alert("連線錯誤"); btn.disabled = false; }
+}
+
+function resetUI() {
+    document.getElementById("result").style.display = "none";
+    document.getElementById("start-btn").style.display = "block";
+    document.getElementById("amount").value = 0;
+    document.getElementById("ok-btn").disabled = false;
+    document.getElementById("ok-btn").innerText = "確認送出交易";
+}
+
+window.onload = () => { setTimeout(startScan, 500); };
+</script>
 </body>
 </html>
