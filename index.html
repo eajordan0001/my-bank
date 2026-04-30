@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>優兒行動銀行 v4.0</title>
-    
+    <title>優兒行動銀行 v4.1</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
 
     <script>
         (function() {
-            const CURRENT_VERSION = "4.0"; 
+            const CURRENT_VERSION = "4.1"; 
             const cachedVersion = localStorage.getItem('app_version');
             if (cachedVersion !== CURRENT_VERSION) {
                 localStorage.setItem('app_version', CURRENT_VERSION);
@@ -19,94 +18,31 @@
     </script>
 
     <style>
-        :root {
-            --primary-pink: #e6007e;
-            --bg-pink: #fce4ec;
-            --btn-gray: #f5f5f5;
-        }
-        body { font-family: -apple-system, "Helvetica Neue", sans-serif; text-align: center; margin: 0; padding: 15px; background-color: var(--primary-pink); }
-        
-        .main-card { 
-            background: var(--bg-pink); 
-            padding: 20px; 
-            border-radius: 30px; 
-            max-width: 400px; 
-            margin: auto; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2); 
-            min-height: 80vh;
-        }
-
-        h2 { color: #5d4037; font-size: 24px; margin-bottom: 15px; }
-
-        /* 掃描區域 */
+        :root { --primary-pink: #e6007e; --bg-pink: #fce4ec; --btn-gray: #f5f5f5; }
+        body { font-family: -apple-system, sans-serif; text-align: center; margin: 0; padding: 15px; background-color: var(--primary-pink); }
+        .main-card { background: var(--bg-pink); padding: 20px; border-radius: 30px; max-width: 400px; margin: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); min-height: 85vh; }
         #reader { width: 100%; border-radius: 20px; overflow: hidden; background: #000; margin-bottom: 15px; }
-
-        /* 資訊區塊 */
         .info-box { background: rgba(255,255,255,0.5); padding: 15px; border-radius: 20px; margin-bottom: 20px; }
-        .user-id { font-size: 14px; color: #888; margin-bottom: 2px; font-weight: bold; }
+        .user-id { font-size: 14px; color: #888; margin-bottom: 2px; font-weight: bold; } /* 1/3 姓名大小 */
         .user-name { font-size: 42px; font-weight: 900; color: var(--primary-pink); margin: 0; line-height: 1.1; }
-        .balance-label { font-size: 14px; color: #666; margin-top: 5px; }
-        .user-balance { font-size: 36px; font-weight: bold; color: #333; margin: 0; letter-spacing: 2px; }
-
-        /* 金額輸入 */
-        .amount-display { 
-            background: white; 
-            border: 3px solid #333; 
-            border-radius: 15px; 
-            font-size: 48px; 
-            font-weight: bold; 
-            padding: 10px; 
-            margin-bottom: 20px; 
-            color: #000;
-        }
-
-        /* 快速金額按鈕 */
+        .user-balance { font-size: 36px; font-weight: bold; color: #333; margin: 5px 0 0 0; }
+        .amount-display { background: white; border: 3px solid #333; border-radius: 15px; font-size: 48px; font-weight: bold; padding: 10px; margin-bottom: 20px; color: #000; }
         .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
-        .btn-quick { 
-            background: white; 
-            border: none; 
-            border-radius: 15px; 
-            padding: 15px 0; 
-            font-size: 20px; 
-            font-weight: bold; 
-            box-shadow: 0 4px 0 #ddd;
-            transition: 0.1s;
-        }
-        .btn-quick:active { transform: translateY(4px); box-shadow: none; }
-        .q-plus { color: #4caf50; }
-        .q-minus { color: #f44336; }
-
-        /* 交易項目按鈕 */
-        .item-label { text-align: left; font-weight: bold; color: #555; margin-bottom: 8px; font-size: 14px; }
+        .btn-quick { background: white; border: none; border-radius: 15px; padding: 15px 0; font-size: 18px; font-weight: bold; box-shadow: 0 4px 0 #ddd; }
+        .btn-quick:active { transform: translateY(2px); box-shadow: none; }
+        .q-plus { color: #4caf50; } .q-minus { color: #f44336; }
         .grid-3 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
-        .btn-item { 
-            background: var(--btn-gray); 
-            border: none; 
-            border-radius: 10px; 
-            padding: 12px 5px; 
-            font-size: 13px; 
-            font-weight: bold; 
-            color: #444;
-            white-space: nowrap;
-        }
+        .btn-item { background: var(--btn-gray); border: none; border-radius: 10px; padding: 12px 5px; font-size: 12px; font-weight: bold; color: #444; }
         .btn-item.active { background: var(--primary-pink); color: white; }
-
-        /* 功能按鈕 */
-        .action-btn { 
-            display: block; width: 100%; padding: 18px 0; 
-            font-size: 20px; font-weight: bold; border: none; 
-            border-radius: 15px; cursor: pointer; margin-bottom: 10px;
-        }
+        .action-btn { display: block; width: 100%; padding: 18px 0; font-size: 20px; font-weight: bold; border: none; border-radius: 15px; cursor: pointer; margin-bottom: 10px; }
         #start-btn { background: #4CAF50; color: white; }
         #ok-btn { background: var(--primary-pink); color: white; box-shadow: 0 5px 0 #ad005f; }
-        .reset-btn { background: #666; color: white; }
     </style>
 </head>
 
 <body>
 <div class="main-card">
     <h2>💰 優兒行動銀行 💰</h2>
-
     <button id="start-btn" class="action-btn" onclick="initAndStart()">📢 點擊啟動相機</button>
     <div id="reader" style="display:none;"></div>
 
@@ -114,13 +50,10 @@
         <div class="info-box">
             <div id="display-id" class="user-id">ID: ----</div>
             <div id="display-name" class="user-name">---</div>
-            <div class="balance-label">目前餘額</div>
+            <div style="font-size:14px; color:#666; margin-top:5px;">目前餘額</div>
             <div id="display-balance" class="user-balance">---</div>
         </div>
-
         <div id="amount-val" class="amount-display">0</div>
-
-        <div class="item-label">快速金額加總</div>
         <div class="grid-4">
             <button class="btn-quick q-plus" onclick="modAmt(1)">+1</button>
             <button class="btn-quick q-plus" onclick="modAmt(5)">+5</button>
@@ -131,8 +64,6 @@
             <button class="btn-quick q-minus" onclick="modAmt(-10)">-10</button>
             <button class="btn-quick q-minus" onclick="modAmt(-50)">-50</button>
         </div>
-
-        <div class="item-label">交易項目</div>
         <div class="grid-3">
             <button class="btn-item" onclick="setNote(this, '餅乾')">🍪 餅乾</button>
             <button class="btn-item" onclick="setNote(this, '飲料')">🧃 飲料</button>
@@ -147,9 +78,8 @@
             <button class="btn-item" onclick="setNote(this, '預留8')">預留8</button>
             <button class="btn-item" onclick="setNote(this, '預留9')">預留9</button>
         </div>
-
         <button id="ok-btn" class="action-btn" onclick="doTrade()">確認交易送出</button>
-        <button class="reset-btn action-btn" onclick="location.reload()">取消/重新掃描</button>
+        <button class="action-btn" style="background:#666; color:white;" onclick="location.reload()">重新掃描</button>
     </div>
 </div>
 
@@ -158,17 +88,22 @@ const scriptURL = "https://script.google.com/macros/s/AKfycbzI8YIKfK2h5MVeUOWE1o
 const TOKEN = "abc123";
 let scanner = null, globalId = "", currentAmt = 0, currentNote = "其他";
 
-// 音效定義
-const scanSound = new Audio("https://raw.githubusercontent.com/eajordan0001/eajordan0001.github.io/main/Beep.mp3");
-const successSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
-scanSound.crossOrigin = "anonymous";
-successSound.crossOrigin = "anonymous";
+// 網址除錯：如果 GitHub 網址失效，將自動切換到備用音效
+const BEEP_URL = "https://raw.githubusercontent.com/eajordan0001/eajordan0001.github.io/main/Beep.mp3";
+const FALLBACK_BEEP = "https://www.soundjay.com/buttons/beep-07a.mp3"; 
+const SUCCESS_URL = "https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg";
 
-// 關鍵：使用靜音 Web Audio 解鎖，完全避開 play() 洩漏
+let scanSound = null;
+let successSound = null;
+
 function initAndStart() {
-    const context = new (window.AudioContext || window.webkitAudioContext)();
-    if (context.state === 'suspended') context.resume();
+    // 只有在使用者點擊那一刻才建立 Audio 物件，徹底避免自動解鎖產生的雜音
+    scanSound = new Audio(BEEP_URL);
+    successSound = new Audio(SUCCESS_URL);
     
+    // 檢查 GitHub 檔案是否有效
+    scanSound.onerror = () => { scanSound.src = FALLBACK_BEEP; };
+
     document.getElementById("start-btn").style.display = "none";
     document.getElementById("reader").style.display = "block";
     setTimeout(startScan, 300);
@@ -178,10 +113,7 @@ async function startScan() {
     if (!scanner) scanner = new Html5Qrcode("reader");
     try {
         await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-            // 掃描成功嗶一聲 (只有在這裡才真正 play)
-            scanSound.currentTime = 0;
-            scanSound.play().catch(()=>{});
-            
+            if (scanSound) scanSound.play().catch(()=>{});
             if (navigator.vibrate) navigator.vibrate(50);
             globalId = text.trim();
             scanner.stop().then(() => fetchData());
@@ -193,7 +125,6 @@ async function fetchData() {
     document.getElementById("reader").style.display = "none";
     document.getElementById("trade-ui").style.display = "block";
     document.getElementById("display-name").innerText = "連線中...";
-    
     try {
         const res = await fetch(`${scriptURL}?id=${globalId}&amount=0&token=${TOKEN}`);
         const data = await res.json();
@@ -201,38 +132,27 @@ async function fetchData() {
             document.getElementById("display-id").innerText = "ID: " + globalId;
             document.getElementById("display-name").innerText = data.name;
             document.getElementById("display-balance").innerText = data.balance;
-        } else { alert("找不到此 ID"); location.reload(); }
-    } catch (e) { alert("連線失敗"); location.reload(); }
+        } else { alert("查無資料"); location.reload(); }
+    } catch (e) { alert("網路錯誤"); location.reload(); }
 }
 
-function modAmt(v) {
-    currentAmt += v;
-    if (currentAmt < 0) currentAmt = 0;
-    document.getElementById("amount-val").innerText = currentAmt;
-}
-
-function setNote(btn, note) {
-    document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentNote = note;
-}
+function modAmt(v) { currentAmt = Math.max(0, currentAmt + v); document.getElementById("amount-val").innerText = currentAmt; }
+function setNote(btn, note) { document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('active')); btn.classList.add('active'); currentNote = note; }
 
 async function doTrade() {
     if (currentAmt <= 0) return alert("請輸入金額");
     const btn = document.getElementById("ok-btn");
     btn.disabled = true;
-    btn.innerText = "處理中...";
-    
     try {
         const url = `${scriptURL}?id=${globalId}&amount=${currentAmt}&token=${TOKEN}&note=${encodeURIComponent(currentNote)}&tid=T${Date.now()}`;
         const res = await fetch(url);
         const data = await res.json();
         if (data.status === "success") {
-            successSound.play().catch(()=>{});
-            alert(`✅ 交易成功！\n${data.name} 的新餘額為 ${data.newBalance}`);
+            if (successSound) successSound.play().catch(()=>{});
+            alert(`✅ 交易成功！\n餘額：${data.newBalance}`);
             location.reload();
         }
-    } catch (e) { alert("交易連線失敗"); btn.disabled = false; btn.innerText = "確認交易送出"; }
+    } catch (e) { alert("通訊失敗"); btn.disabled = false; }
 }
 </script>
 </body>
