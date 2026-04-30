@@ -3,12 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>優兒行動銀行 v5.0</title>
+    <title>優兒行動銀行 v5.1</title>
     
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/10006/10006206.png">
-    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/10006/10006206.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
+    <link rel="apple-touch-icon" href="./icon-512.png">
+    
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="優兒銀行">
 
     <script src="https://unpkg.com/html5-qrcode"></script>
 
@@ -41,32 +45,15 @@
         #start-btn { background: #4CAF50; color: white; }
         #ok-btn { background: var(--primary-pink); color: white; box-shadow: 0 5px 0 #ad005f; }
 
-        /* 自定義彈窗優化 */
-        #custom-modal { 
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; 
-        }
-        .modal-content { 
-            background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 380px; 
-            font-size: 20px; color: #333; box-sizing: border-box;
-        }
+        /* 自定義彈窗 - 20px 字體與標籤對齊 */
+        #custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 380px; font-size: 20px; color: #333; box-sizing: border-box; }
         .modal-header { text-align: center; font-weight: bold; color: #28a745; margin-bottom: 15px; font-size: 24px; }
         .modal-body { text-align: left; border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; padding: 15px 0; margin-bottom: 20px; }
-        
-        /* 標籤對齊核心 CSS */
         .modal-line { margin-bottom: 8px; display: flex; align-items: flex-start; }
-        .modal-label { 
-            display: inline-block; 
-            width: 120px; /* 固定標籤寬度約四個中文字的範圍 */
-            flex-shrink: 0;
-            font-weight: bold;
-        }
+        .modal-label { display: inline-block; width: 110px; flex-shrink: 0; font-weight: bold; }
         .modal-value { flex-grow: 1; }
-
-        .modal-btn { 
-            width: 100%; padding: 15px; background: var(--primary-pink); color: white; 
-            border: none; border-radius: 10px; font-size: 20px; font-weight: bold; 
-        }
+        .modal-btn { width: 100%; padding: 15px; background: var(--primary-pink); color: white; border: none; border-radius: 10px; font-size: 20px; font-weight: bold; }
     </style>
 </head>
 
@@ -120,8 +107,7 @@
 <div id="custom-modal">
     <div class="modal-content">
         <div class="modal-header">✅ 交易成功！</div>
-        <div id="modal-body-content" class="modal-body">
-            </div>
+        <div id="modal-body-content" class="modal-body"></div>
         <button class="modal-btn" onclick="closeModal()">確定</button>
     </div>
 </div>
@@ -139,11 +125,8 @@ function playBeep(freq = 850, duration = 0.15) {
     osc.type = "sine";
     osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
     gain.gain.setValueAtTime(0.5, audioCtx.currentTime); 
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + duration);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + duration);
 }
 
 const successSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
@@ -161,22 +144,16 @@ function initAndStart() {
 async function startScan() {
     if (!scanner) scanner = new Html5Qrcode("reader");
     try {
-        await scanner.start(
-            { facingMode: "environment" }, 
-            { fps: 15, qrbox: { width: 250, height: 250 } }, 
-            (text) => {
-                playBeep();
-                globalId = text.trim();
-                scanner.stop().then(() => fetchData());
-            }
-        );
+        await scanner.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (text) => {
+            playBeep(); globalId = text.trim(); scanner.stop().then(() => fetchData());
+        });
     } catch (e) { console.error(e); }
 }
 
 async function fetchData() {
     document.getElementById("reader").style.display = "none";
     document.getElementById("trade-ui").style.display = "block";
-    document.getElementById("display-name").innerText = "載入中...";
+    document.getElementById("display-name").innerText = "連線中...";
     try {
         const res = await fetch(`${scriptURL}?id=${globalId}&amount=0&token=${TOKEN}`);
         const data = await res.json();
@@ -190,72 +167,36 @@ async function fetchData() {
 }
 
 function modAmt(v) { currentAmt += v; document.getElementById("amount-val").innerText = currentAmt; }
-
-function setNote(btn, note) { 
-    document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('active')); 
-    btn.classList.add('active'); 
-    currentNote = note; 
-}
+function setNote(btn, note) { document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('active')); btn.classList.add('active'); currentNote = note; }
 
 function resetToScan() {
     globalId = ""; currentAmt = 0; currentNote = "餅乾";
     document.getElementById("amount-val").innerText = "0";
     document.getElementById("trade-ui").style.display = "none";
     document.getElementById("reader").style.display = "block";
-    const btnOk = document.getElementById("ok-btn");
-    btnOk.disabled = false; btnOk.innerText = "確認交易送出";
-    document.getElementById("reset-btn").disabled = false;
+    document.getElementById("ok-btn").disabled = false;
+    document.getElementById("ok-btn").innerText = "確認交易送出";
     document.querySelectorAll('.btn-item').forEach((b, i) => b.classList.toggle('active', i === 0));
     startScan();
 }
 
-function closeModal() {
-    document.getElementById("custom-modal").style.display = "none";
-    resetToScan();
-}
-
-// 輔助函式：生成結構化行
-function createModalLine(label, value) {
-    return `<div class="modal-line"><span class="modal-label">${label}</span><span class="modal-value">： ${value}</span></div>`;
-}
+function closeModal() { document.getElementById("custom-modal").style.display = "none"; resetToScan(); }
+function createModalLine(label, value) { return `<div class="modal-line"><span class="modal-label">${label}</span><span class="modal-value">： ${value}</span></div>`; }
 
 async function doTrade() {
     if (currentAmt === 0) return alert("請輸入金額");
     const btnOk = document.getElementById("ok-btn");
-    const btnRes = document.getElementById("reset-btn");
-    btnOk.disabled = true; btnRes.disabled = true;
-    btnOk.innerText = "⏳ 交易處理中...";
-    
+    btnOk.disabled = true; btnOk.innerText = "⏳ 交易處理中...";
     try {
-        const url = `${scriptURL}?id=${globalId}&amount=${currentAmt}&token=${TOKEN}&note=${encodeURIComponent(currentNote)}&tid=T${Date.now()}`;
-        const res = await fetch(url);
+        const res = await fetch(`${scriptURL}?id=${globalId}&amount=${currentAmt}&token=${TOKEN}&note=${encodeURIComponent(currentNote)}&tid=T${Date.now()}`);
         const data = await res.json();
-        
         if (data.status === "success") {
             successSound.play().catch(()=>{});
-            
-            // 使用結構化 HTML 生成彈窗內容
-            let infoHTML = "";
-            infoHTML += createModalLine("【學員 ID】", globalId);
-            infoHTML += createModalLine("【學員姓名】", data.name);
-            infoHTML += createModalLine("【交易項目】", currentNote);
-            infoHTML += createModalLine("【原金額】", oldBalance);
-            infoHTML += createModalLine("【變動金額】", (currentAmt > 0 ? "+" : "") + currentAmt);
-            infoHTML += createModalLine("【新餘額】", data.newBalance);
-            
+            let infoHTML = createModalLine("【學員 ID】", globalId) + createModalLine("【學員姓名】", data.name) + createModalLine("【交易項目】", currentNote) + createModalLine("【原金額】", oldBalance) + createModalLine("【變動金額】", (currentAmt > 0 ? "+" : "") + currentAmt) + createModalLine("【新餘額】", data.newBalance);
             document.getElementById("modal-body-content").innerHTML = infoHTML;
             document.getElementById("custom-modal").style.display = "flex";
-            
-        } else {
-            alert("❌ 失敗：" + data.message);
-            btnOk.disabled = false; btnRes.disabled = false;
-            btnOk.innerText = "確認交易送出";
-        }
-    } catch (e) { 
-        alert("網路錯誤"); 
-        btnOk.disabled = false; btnRes.disabled = false;
-        btnOk.innerText = "確認交易送出";
-    }
+        } else { alert("❌ 失敗：" + data.message); btnOk.disabled = false; btnOk.innerText = "確認交易送出"; }
+    } catch (e) { alert("網路錯誤"); btnOk.disabled = false; btnOk.innerText = "確認交易送出"; }
 }
 </script>
 </body>
