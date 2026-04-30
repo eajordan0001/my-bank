@@ -13,10 +13,10 @@
     <script>
         /**
          * 自動版本跳轉與強制更新機制
-         * 版本號更新至 2.5
+         * 版本號更新至 2.6
          */
         (function() {
-            const CURRENT_VERSION = "2.5"; 
+            const CURRENT_VERSION = "2.6"; 
             const cachedVersion = localStorage.getItem('app_version');
 
             if (cachedVersion !== CURRENT_VERSION) {
@@ -29,46 +29,20 @@
     <style>
         body { font-family: sans-serif; text-align: center; margin: 0; padding: 10px; background-color: #f4f4f4; }
         .container { background: white; padding: 15px; border-radius: 15px; max-width: 400px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        
         h2 { margin: 5px 0 10px 0 !important; font-size: 22px; } 
         #reader { width: 100%; margin-bottom: 5px; border-radius: 10px; overflow: hidden; background-color: #000; }
-        
-        .info { margin: 0 !important; padding: 0 0 10px 0 !important; border-bottom: 2px dashed #eee; }
-        .name { 
-            font-size: 38px !important; 
-            font-weight: 900 !important; 
-            color: #e6007e; 
-            margin: 0 !important; 
-            padding: 0 !important;
-            line-height: 1.1;
-        }
+        .name { font-size: 38px !important; font-weight: 900 !important; color: #e6007e; margin: 0 !important; padding: 0 !important; line-height: 1.1; }
         .balance { font-size: 32px; font-weight: bold; color: #2c3e50; margin: 5px 0 0 0 !important; }
-
         .amount-section { background: #fff9fb; padding: 10px; border-radius: 10px; margin-top: 10px; margin-bottom: 15px; }
         input#amount { width: 85%; padding: 10px; font-size: 28px; text-align: center; border: 2px solid #e6007e; border-radius: 10px; margin-bottom: 10px; }
-        
         .btn-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
         .btn-quick { background: #fff; border: 1px solid #e6007e; color: #e6007e; padding: 12px 0; border-radius: 5px; font-size: 15px; font-weight: bold; }
-
         .note-section { text-align: left; margin-bottom: 15px; }
         .note-label { font-size: 14px; font-weight: bold; color: #666; margin-bottom: 5px; display: block; }
         .note-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
         .btn-note { background: #eee; border: none; padding: 12px 0; border-radius: 5px; font-size: 13px; color: #333; }
         .btn-note.active { background: #333; color: #fff; font-weight: bold; }
-
-        .action-btn { 
-            display: block;
-            width: 100% !important; 
-            padding: 18px 0 !important; 
-            font-size: 20px !important; 
-            font-weight: bold !important; 
-            border: none !important; 
-            border-radius: 10px !important; 
-            cursor: pointer;
-            margin-top: 12px !important;
-            box-sizing: border-box;
-        }
-        
+        .action-btn { display: block; width: 100% !important; padding: 18px 0 !important; font-size: 20px !important; font-weight: bold !important; border: none !important; border-radius: 10px !important; cursor: pointer; margin-top: 12px !important; box-sizing: border-box; }
         #ok-btn { background-color: #e6007e; color: white; }
         #ok-btn:disabled { background-color: #ccc; }
         .reset-btn { background-color: #666 !important; color: white !important; } 
@@ -80,7 +54,7 @@
 <div class="container">
     <h2>💰 優兒行動銀行 💰</h2>
 
-    <button id="start-btn" class="action-btn" onclick="startScan()">點擊開啟相機</button>
+    <button id="start-btn" class="action-btn" onclick="handleStartClick()">點擊開啟相機</button>
     <div id="reader"></div>
 
     <div id="result" style="display:none;">
@@ -133,23 +107,26 @@ const TOKEN = "abc123";
 
 let scanner, globalId = "", tid = "", currentNote = "一般交易";
 
-// --- 音效處理 ---
+// --- 音效資源 ---
 const successSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
 const scanSound = new Audio("https://raw.githubusercontent.com/fevabe/qr-scanner-beep/main/beep.mp3");
-successSound.preload = "auto";
-scanSound.preload = "auto";
+scanSound.crossOrigin = "anonymous";
+successSound.crossOrigin = "anonymous";
 
-// 解鎖音效權限
+// 點擊按鈕的進入點：同時啟動解鎖與掃描
+function handleStartClick() {
+    unlockAudio();
+    startScan();
+}
+
+// 關鍵解鎖：播放極短的靜音片段來騙過瀏覽器
 function unlockAudio() {
-    scanSound.play().then(() => {
-        scanSound.pause();
-        scanSound.currentTime = 0;
-    }).catch(e => console.log("Audio unlock required"));
-    
-    successSound.play().then(() => {
-        successSound.pause();
-        successSound.currentTime = 0;
-    }).catch(e => {});
+    [scanSound, successSound].forEach(sound => {
+        sound.play().then(() => {
+            sound.pause();
+            sound.currentTime = 0;
+        }).catch(e => console.log("等待手動解鎖音效..."));
+    });
 }
 
 function addAmt(val) {
@@ -164,7 +141,6 @@ function setNote(btn, noteText) {
 }
 
 async function startScan() {
-    unlockAudio();
     document.getElementById("result").style.display = "none";
     document.getElementById("start-btn").style.display = "none";
     
@@ -173,11 +149,14 @@ async function startScan() {
 
     try {
         await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-            // 播放掃描成功的嗶聲
+            // 掃描成功第一步：發出嗶聲
             try {
                 scanSound.currentTime = 0;
-                scanSound.play();
-            } catch (e) { console.log("掃描音播放失敗"); }
+                let playPromise = scanSound.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => { console.log("嗶聲播放被攔截"); });
+                }
+            } catch (e) {}
             
             if (navigator.vibrate) navigator.vibrate(50);
             
