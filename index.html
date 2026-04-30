@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>優兒行動銀行 v3.2</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e6007e">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <script src="https://unpkg.com/html5-qrcode"></script>
 
     <script>
@@ -42,7 +46,8 @@
 <body>
 <div class="container">
     <h2>💰 優兒行動銀行 💰</h2>
-    <button id="start-btn" class="action-btn" onclick="handleStartClick()">📢 點此啟動系統</button>
+
+    <button id="start-btn" class="action-btn" onclick="handleStartClick()">📢 點此啟動相機並開啟音效</button>
     <div id="reader" style="display:none;"></div>
 
     <div id="result" style="display:none;">
@@ -50,15 +55,22 @@
             <div id="name" class="name">---</div>
             <div id="balance" class="balance">---</div>
         </div>
+
         <div class="amount-section">
             <input type="number" id="amount" value="0">
             <div class="btn-group">
-                <button class="btn-quick" onclick="addAmt(1)">+1</button><button class="btn-quick" onclick="addAmt(5)">+5</button>
-                <button class="btn-quick" onclick="addAmt(10)">+10</button><button class="btn-quick" onclick="addAmt(50)">+50</button>
-                <button class="btn-quick" onclick="addAmt(-1)">-1</button><button class="btn-quick" onclick="addAmt(-5)">-5</button>
-                <button class="btn-quick" onclick="addAmt(-10)">-10</button><button class="btn-quick" onclick="addAmt(-50)">-50</button>
+                <button class="btn-quick" onclick="addAmt(1)">+1</button>
+                <button class="btn-quick" onclick="addAmt(5)">+5</button>
+                <button class="btn-quick" onclick="addAmt(10)">+10</button>
+                <button class="btn-quick" onclick="addAmt(50)">+50</button>
+                <button class="btn-quick" onclick="addAmt(-1)">-1</button>
+                <button class="btn-quick" onclick="addAmt(-5)">-5</button>
+                <button class="btn-quick" onclick="addAmt(-10)">-10</button>
+                <button class="btn-quick" onclick="addAmt(-50)">-50</button>
             </div>
+            <button class="btn-quick" style="width:100%" onclick="document.getElementById('amount').value=0">歸零清空</button>
         </div>
+
         <div class="note-section">
             <span style="font-size:14px; font-weight:bold; color:#666;">選擇交易項目：</span>
             <div class="note-group">
@@ -66,12 +78,17 @@
                 <button class="btn-note" onclick="setNote(this, '餅乾')">餅乾</button>
                 <button class="btn-note" onclick="setNote(this, '飲料')">飲料</button>
                 <button class="btn-note" onclick="setNote(this, '其他')">其他</button>
-                <button class="btn-note" onclick="setNote(this, '項目 1')">項目 1</button><button class="btn-note" onclick="setNote(this, '項目 2')">項目 2</button>
-                <button class="btn-note" onclick="setNote(this, '項目 3')">項目 3</button><button class="btn-note" onclick="setNote(this, '項目 4')">項目 4</button>
-                <button class="btn-note" onclick="setNote(this, '項目 5')">項目 5</button><button class="btn-note" onclick="setNote(this, '項目 6')">項目 6</button>
-                <button class="btn-note" onclick="setNote(this, '項目 7')">項目 7</button><button class="btn-note" onclick="setNote(this, '項目 8')">項目 8</button>
+                <button class="btn-note" onclick="setNote(this, '項目 1')">項目 1</button>
+                <button class="btn-note" onclick="setNote(this, '項目 2')">項目 2</button>
+                <button class="btn-note" onclick="setNote(this, '項目 3')">項目 3</button>
+                <button class="btn-note" onclick="setNote(this, '項目 4')">項目 4</button>
+                <button class="btn-note" onclick="setNote(this, '項目 5')">項目 5</button>
+                <button class="btn-note" onclick="setNote(this, '項目 6')">項目 6</button>
+                <button class="btn-note" onclick="setNote(this, '項目 7')">項目 7</button>
+                <button class="btn-note" onclick="setNote(this, '項目 8')">項目 8</button>
             </div>
         </div>
+
         <button id="ok-btn" class="action-btn" onclick="doTrade()">確認送出交易</button>
         <button class="reset-btn action-btn" onclick="resetUI()">取消並重新掃描</button>
     </div>
@@ -81,90 +98,117 @@
 const scriptURL = "https://script.google.com/macros/s/AKfycbzI8YIKfK2h5MVeUOWE1oJq4mHu4KguUOVS_gt0wZdHvSz1AaDaOaE8jCD0rmz9q9SV/exec";
 const TOKEN = "abc123";
 
-let scanner = null, globalId = "", currentNote = "一般交易";
-let audioCtx = null;
+let scanner = null;
+let globalId = "", tid = "", currentNote = "一般交易";
 
-// 音效定義
-const scanSound = new Audio("https://raw.githubusercontent.com/eajordan0001/eajordan0001.github.io/main/Beep.mp3");
-const successSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
+// --- 音效設定 ---
+const GITHUB_BEEP = "https://raw.githubusercontent.com/eajordan0001/eajordan0001.github.io/main/Beep.mp3";
+const SUCCESS_SOUND = "https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg";
+
+const scanSound = new Audio(GITHUB_BEEP);
+const successSound = new Audio(SUCCESS_SOUND);
+
 scanSound.crossOrigin = "anonymous";
 successSound.crossOrigin = "anonymous";
 
+/**
+ * 核心優化：解鎖權限時將音量調至 0
+ * 避免使用者在啟動相機時聽到任何「洩漏」的雜音
+ */
 function handleStartClick() {
-    // 1. 初始化 AudioContext 這是解決 LINE/Safari 靜音的最強手段
-    if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-    }
-
-    // 2. 預播放解鎖
-    [scanSound, successSound].forEach(s => {
-        s.play().then(() => { s.pause(); s.currentTime = 0; }).catch(() => {});
-    });
+    const unlockQuietly = (sound) => {
+        const originalVolume = sound.volume;
+        sound.volume = 0; // 靜音解鎖
+        sound.play().then(() => {
+            sound.pause();
+            sound.currentTime = 0;
+            sound.volume = originalVolume; // 恢復原音量
+        }).catch(e => console.log("Silent unlock failed:", e));
+    };
+    
+    unlockQuietly(scanSound);
+    unlockQuietly(successSound);
 
     document.getElementById("start-btn").style.display = "none";
     document.getElementById("reader").style.display = "block";
+    
     setTimeout(startScan, 500);
+}
+
+function addAmt(val) {
+    let input = document.getElementById("amount");
+    input.value = (parseInt(input.value) || 0) + val;
+}
+
+function setNote(btn, noteText) {
+    document.querySelectorAll('.btn-note').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentNote = noteText;
 }
 
 async function startScan() {
     if (!scanner) scanner = new Html5Qrcode("reader");
+    
     try {
         await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-            // 掃描成功：再次嘗試恢復 AudioContext
-            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-            
-            // 播放嗶聲
+            // 掃描成功：播放嗶聲
             scanSound.currentTime = 0;
-            const p = scanSound.play();
-            if (p) p.catch(e => console.log("播放失敗", e));
+            scanSound.play().catch(e => console.log("Playback blocked"));
             
             if (navigator.vibrate) navigator.vibrate(50);
             globalId = text.trim();
-            scanner.stop().then(() => fetchData());
+            tid = "T" + Date.now();
+            scanner.stop().then(() => { fetchData(); });
         });
     } catch (err) {
         document.getElementById("start-btn").style.display = "block";
-    }
-}
-
-async function fetchData() {
-    const res = await fetch(`${scriptURL}?id=${globalId}&amount=0&token=${TOKEN}`);
-    const data = await res.json();
-    if (data.status === "success") {
-        document.getElementById("name").innerText = data.name;
-        document.getElementById("balance").innerText = "餘額: " + data.balance;
-        document.getElementById("result").style.display = "block";
         document.getElementById("reader").style.display = "none";
     }
 }
 
-function addAmt(v) { document.getElementById("amount").value = (parseInt(document.getElementById("amount").value) || 0) + v; }
-function setNote(btn, n) { 
-    document.querySelectorAll('.btn-note').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active'); currentNote = n; 
+async function fetchData() {
+    try {
+        const res = await fetch(`${scriptURL}?id=${globalId}&amount=0&token=${TOKEN}`);
+        const data = await res.json();
+        if (data.status === "success") {
+            document.getElementById("name").innerText = data.name;
+            document.getElementById("balance").innerText = "餘額: " + data.balance;
+            document.getElementById("result").style.display = "block";
+            document.getElementById("reader").style.display = "none";
+        } else {
+            alert("❌ 讀取失敗");
+            resetUI();
+        }
+    } catch (e) { alert("連線失敗"); resetUI(); }
 }
 
 async function doTrade() {
     const btn = document.getElementById("ok-btn");
-    btn.disabled = true;
     let amt = parseInt(document.getElementById("amount").value) || 0;
-    const url = `${scriptURL}?id=${globalId}&amount=${amt}&token=${TOKEN}&note=${encodeURIComponent(currentNote)}&tid=T${Date.now()}`;
+    if (amt === 0) return alert("請輸入金額");
+    if (!confirm(`對象: ${document.getElementById("name").innerText}\n項目: ${currentNote}\n金額: ${amt}\n確認執行？`)) return;
+
+    btn.disabled = true;
     try {
+        const url = `${scriptURL}?id=${globalId}&amount=${amt}&tid=${tid}&token=${TOKEN}&note=${encodeURIComponent(currentNote)}`;
         const res = await fetch(url);
         const data = await res.json();
         if (data.status === "success") {
+            // 交易成功：播放成功音
             successSound.play().catch(() => {});
             alert(`✅ 交易成功！\n餘額：${data.newBalance}`);
             resetUI();
+        } else {
+            alert("❌ 失敗");
+            btn.disabled = false;
         }
-    } catch (e) { btn.disabled = false; }
+    } catch (e) { alert("連線錯誤"); btn.disabled = false; }
 }
 
 function resetUI() {
     document.getElementById("result").style.display = "none";
+    document.getElementById("amount").value = 0;
+    document.getElementById("ok-btn").disabled = false;
     document.getElementById("reader").style.display = "block";
     startScan();
 }
