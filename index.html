@@ -11,10 +11,14 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
 
     <script>
-        // 版本號更新至 2.4
+        /**
+         * 自動版本跳轉與強制更新機制
+         * 版本號更新至 2.5
+         */
         (function() {
-            const CURRENT_VERSION = "2.4"; 
+            const CURRENT_VERSION = "2.5"; 
             const cachedVersion = localStorage.getItem('app_version');
+
             if (cachedVersion !== CURRENT_VERSION) {
                 localStorage.setItem('app_version', CURRENT_VERSION);
                 window.location.href = window.location.pathname + '?v=' + CURRENT_VERSION;
@@ -25,19 +29,48 @@
     <style>
         body { font-family: sans-serif; text-align: center; margin: 0; padding: 10px; background-color: #f4f4f4; }
         .container { background: white; padding: 15px; border-radius: 15px; max-width: 400px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        
         h2 { margin: 5px 0 10px 0 !important; font-size: 22px; } 
         #reader { width: 100%; margin-bottom: 5px; border-radius: 10px; overflow: hidden; background-color: #000; }
-        .name { font-size: 38px !important; font-weight: 900 !important; color: #e6007e; margin: 0 !important; line-height: 1.1; }
+        
+        .info { margin: 0 !important; padding: 0 0 10px 0 !important; border-bottom: 2px dashed #eee; }
+        .name { 
+            font-size: 38px !important; 
+            font-weight: 900 !important; 
+            color: #e6007e; 
+            margin: 0 !important; 
+            padding: 0 !important;
+            line-height: 1.1;
+        }
         .balance { font-size: 32px; font-weight: bold; color: #2c3e50; margin: 5px 0 0 0 !important; }
+
         .amount-section { background: #fff9fb; padding: 10px; border-radius: 10px; margin-top: 10px; margin-bottom: 15px; }
         input#amount { width: 85%; padding: 10px; font-size: 28px; text-align: center; border: 2px solid #e6007e; border-radius: 10px; margin-bottom: 10px; }
+        
         .btn-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
         .btn-quick { background: #fff; border: 1px solid #e6007e; color: #e6007e; padding: 12px 0; border-radius: 5px; font-size: 15px; font-weight: bold; }
+
+        .note-section { text-align: left; margin-bottom: 15px; }
+        .note-label { font-size: 14px; font-weight: bold; color: #666; margin-bottom: 5px; display: block; }
         .note-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
         .btn-note { background: #eee; border: none; padding: 12px 0; border-radius: 5px; font-size: 13px; color: #333; }
         .btn-note.active { background: #333; color: #fff; font-weight: bold; }
-        .action-btn { display: block; width: 100% !important; padding: 18px 0 !important; font-size: 20px !important; font-weight: bold !important; border: none !important; border-radius: 10px !important; cursor: pointer; margin-top: 12px !important; box-sizing: border-box; }
+
+        .action-btn { 
+            display: block;
+            width: 100% !important; 
+            padding: 18px 0 !important; 
+            font-size: 20px !important; 
+            font-weight: bold !important; 
+            border: none !important; 
+            border-radius: 10px !important; 
+            cursor: pointer;
+            margin-top: 12px !important;
+            box-sizing: border-box;
+        }
+        
         #ok-btn { background-color: #e6007e; color: white; }
+        #ok-btn:disabled { background-color: #ccc; }
         .reset-btn { background-color: #666 !important; color: white !important; } 
         #start-btn { background-color: #4CAF50; color: white; margin-top: 0 !important; }
     </style>
@@ -46,32 +79,49 @@
 <body>
 <div class="container">
     <h2>💰 優兒行動銀行 💰</h2>
+
     <button id="start-btn" class="action-btn" onclick="startScan()">點擊開啟相機</button>
     <div id="reader"></div>
 
     <div id="result" style="display:none;">
-        <div class="info" style="border-bottom: 2px dashed #eee; padding-bottom:10px;">
+        <div class="info">
             <div id="name" class="name">---</div>
             <div id="balance" class="balance">---</div>
         </div>
+
         <div class="amount-section">
             <input type="number" id="amount" value="0">
             <div class="btn-group">
-                <button class="btn-quick" onclick="addAmt(1)">+1</button><button class="btn-quick" onclick="addAmt(5)">+5</button><button class="btn-quick" onclick="addAmt(10)">+10</button><button class="btn-quick" onclick="addAmt(50)">+50</button>
-                <button class="btn-quick" onclick="addAmt(-1)">-1</button><button class="btn-quick" onclick="addAmt(-5)">-5</button><button class="btn-quick" onclick="addAmt(-10)">-10</button><button class="btn-quick" onclick="addAmt(-50)">-50</button>
+                <button class="btn-quick" onclick="addAmt(1)">+1</button>
+                <button class="btn-quick" onclick="addAmt(5)">+5</button>
+                <button class="btn-quick" onclick="addAmt(10)">+10</button>
+                <button class="btn-quick" onclick="addAmt(50)">+50</button>
+                <button class="btn-quick" onclick="addAmt(-1)">-1</button>
+                <button class="btn-quick" onclick="addAmt(-5)">-5</button>
+                <button class="btn-quick" onclick="addAmt(-10)">-10</button>
+                <button class="btn-quick" onclick="addAmt(-50)">-50</button>
             </div>
             <button class="btn-quick" style="width:100%" onclick="document.getElementById('amount').value=0">歸零清空</button>
         </div>
-        <div class="note-section" style="text-align:left; margin-bottom:15px;">
-            <span style="font-size:14px; font-weight:bold; color:#666;">選擇交易項目：</span>
-            <div class="note-group">
+
+        <div class="note-section">
+            <span class="note-label">選擇交易項目：</span>
+            <div class="note-group" id="noteGroup">
                 <button class="btn-note active" onclick="setNote(this, '一般交易')">一般交易</button>
                 <button class="btn-note" onclick="setNote(this, '餅乾')">餅乾</button>
                 <button class="btn-note" onclick="setNote(this, '飲料')">飲料</button>
                 <button class="btn-note" onclick="setNote(this, '其他')">其他</button>
-                <!-- 其他項目保留... -->
+                <button class="btn-note" onclick="setNote(this, '項目 1')">項目 1</button>
+                <button class="btn-note" onclick="setNote(this, '項目 2')">項目 2</button>
+                <button class="btn-note" onclick="setNote(this, '項目 3')">項目 3</button>
+                <button class="btn-note" onclick="setNote(this, '項目 4')">項目 4</button>
+                <button class="btn-note" onclick="setNote(this, '項目 5')">項目 5</button>
+                <button class="btn-note" onclick="setNote(this, '項目 6')">項目 6</button>
+                <button class="btn-note" onclick="setNote(this, '項目 7')">項目 7</button>
+                <button class="btn-note" onclick="setNote(this, '項目 8')">項目 8</button>
             </div>
         </div>
+
         <button id="ok-btn" class="action-btn" onclick="doTrade()">確認送出交易</button>
         <button class="reset-btn action-btn" onclick="resetUI()">取消並重新掃描</button>
     </div>
@@ -83,23 +133,24 @@ const TOKEN = "abc123";
 
 let scanner, globalId = "", tid = "", currentNote = "一般交易";
 
-// --- 建立瀏覽器原生電子嗶聲 ---
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function playBeep(frequency = 880, duration = 150) {
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    oscillator.type = "square"; // 嗶聲比較清脆
-    oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // 音量
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-    oscillator.start();
-    oscillator.stop(audioCtx.currentTime + (duration / 1000));
-}
-
-// 交易成功音 (讀取外部音檔)
+// --- 音效處理 ---
 const successSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
+const scanSound = new Audio("https://raw.githubusercontent.com/fevabe/qr-scanner-beep/main/beep.mp3");
+successSound.preload = "auto";
+scanSound.preload = "auto";
+
+// 解鎖音效權限
+function unlockAudio() {
+    scanSound.play().then(() => {
+        scanSound.pause();
+        scanSound.currentTime = 0;
+    }).catch(e => console.log("Audio unlock required"));
+    
+    successSound.play().then(() => {
+        successSound.pause();
+        successSound.currentTime = 0;
+    }).catch(e => {});
+}
 
 function addAmt(val) {
     let input = document.getElementById("amount");
@@ -113,9 +164,7 @@ function setNote(btn, noteText) {
 }
 
 async function startScan() {
-    // 點擊按鈕時啟動音頻上下文 (解鎖關鍵)
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    
+    unlockAudio();
     document.getElementById("result").style.display = "none";
     document.getElementById("start-btn").style.display = "none";
     
@@ -124,8 +173,12 @@ async function startScan() {
 
     try {
         await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-            // 掃描成功：呼叫內建嗶聲
-            playBeep(880, 150); 
+            // 播放掃描成功的嗶聲
+            try {
+                scanSound.currentTime = 0;
+                scanSound.play();
+            } catch (e) { console.log("掃描音播放失敗"); }
+            
             if (navigator.vibrate) navigator.vibrate(50);
             
             globalId = text.trim();
@@ -146,34 +199,46 @@ async function fetchData() {
             document.getElementById("balance").innerText = "餘額: " + data.balance;
             document.getElementById("result").style.display = "block";
         } else {
-            alert("❌ 讀取失敗"); resetUI();
+            alert("❌ 讀取資料失敗: " + data.message);
+            resetUI();
         }
-    } catch (e) { alert("連線失敗"); resetUI(); }
+    } catch (e) { alert("連線讀取失敗"); resetUI(); }
 }
 
 async function doTrade() {
     const btn = document.getElementById("ok-btn");
     let amt = parseInt(document.getElementById("amount").value) || 0;
     if (amt === 0) return alert("請輸入金額");
-    if (!confirm(`對象: ${document.getElementById("name").innerText}\n金額: ${amt}\n確認？`)) return;
+    if (!confirm(`對象: ${document.getElementById("name").innerText}\n項目: ${currentNote}\n金額: ${amt}\n確認執行？`)) return;
 
     btn.disabled = true;
+    btn.innerText = "處理中...";
     try {
         const url = `${scriptURL}?id=${globalId}&amount=${amt}&tid=${tid}&token=${TOKEN}&note=${encodeURIComponent(currentNote)}`;
         const res = await fetch(url);
         const data = await res.json();
         if (data.status === "success") {
-            successSound.play().catch(()=>{});
-            alert(`✅ 交易成功！\n餘額：${data.newBalance}`);
+            if (navigator.vibrate) navigator.vibrate(100);
+            successSound.play().catch(() => {});
+            alert(`✅ 交易成功！\n新餘額：${data.newBalance}`);
             resetUI();
-        } else { alert("失敗"); btn.disabled = false; }
-    } catch (e) { alert("錯誤"); btn.disabled = false; }
+        } else {
+            alert("❌ 寫入失敗: " + data.message);
+            btn.disabled = false;
+            btn.innerText = "確認送出交易";
+        }
+    } catch (e) { 
+        alert("連線寫入失敗"); 
+        btn.disabled = false; 
+        btn.innerText = "確認送出交易";
+    }
 }
 
 function resetUI() {
     document.getElementById("result").style.display = "none";
     document.getElementById("amount").value = 0;
     document.getElementById("ok-btn").disabled = false;
+    document.getElementById("ok-btn").innerText = "確認送出交易";
     startScan();
 }
 
