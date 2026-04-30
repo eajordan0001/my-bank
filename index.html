@@ -10,6 +10,22 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     <script src="https://unpkg.com/html5-qrcode"></script>
 
+    <script>
+        /**
+         * 自動版本跳轉與強制更新機制
+         * 版本號已更新至 2.2
+         */
+        (function() {
+            const CURRENT_VERSION = "2.2"; 
+            const cachedVersion = localStorage.getItem('app_version');
+
+            if (cachedVersion !== CURRENT_VERSION) {
+                localStorage.setItem('app_version', CURRENT_VERSION);
+                window.location.href = window.location.pathname + '?v=' + CURRENT_VERSION;
+            }
+        })();
+    </script>
+
     <style>
         body { font-family: sans-serif; text-align: center; margin: 0; padding: 10px; background-color: #f4f4f4; }
         .container { background: white; padding: 15px; border-radius: 15px; max-width: 400px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
@@ -62,7 +78,6 @@
 
 <body>
 <div class="container">
-    <!-- 標題已更新 -->
     <h2>💰 優兒行動銀行 💰</h2>
 
     <button id="start-btn" class="action-btn" onclick="startScan()">點擊開啟相機</button>
@@ -108,7 +123,6 @@
         </div>
 
         <button id="ok-btn" class="action-btn" onclick="doTrade()">確認送出交易</button>
-        <!-- 此按鈕點擊後會自動重啟相機 -->
         <button class="reset-btn action-btn" onclick="resetUI()">取消並重新掃描</button>
     </div>
 </div>
@@ -118,7 +132,10 @@ const scriptURL = "https://script.google.com/macros/s/AKfycbzI8YIKfK2h5MVeUOWE1o
 const TOKEN = "abc123";
 
 let scanner, globalId = "", tid = "", currentNote = "一般交易";
-const successSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
+
+// 提示音資源
+const successSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"); // 交易成功音
+const scanSound = new Audio("https://raw.githubusercontent.com/fevabe/qr-scanner-beep/main/beep.mp3"); // 掃描嗶聲
 
 function addAmt(val) {
     let input = document.getElementById("amount");
@@ -136,20 +153,19 @@ async function startScan() {
     document.getElementById("start-btn").style.display = "none";
     
     if (!scanner) scanner = new Html5Qrcode("reader");
-    
-    // 如果掃描器已經在跑，先停掉再開，避免衝突
-    if (scanner.isScanning) {
-        await scanner.stop();
-    }
+    if (scanner.isScanning) await scanner.stop();
 
     try {
         await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
+            // 掃描成功觸發：播放嗶聲並振動
+            scanSound.play().catch(e => console.log("音效播放受限"));
+            if (navigator.vibrate) navigator.vibrate(50);
+            
             globalId = text.trim();
             tid = "T" + Date.now();
             scanner.stop().then(() => { fetchData(); });
         });
     } catch (err) {
-        console.error(err);
         document.getElementById("start-btn").style.display = "block";
     }
 }
@@ -163,10 +179,10 @@ async function fetchData() {
             document.getElementById("balance").innerText = "餘額: " + data.balance;
             document.getElementById("result").style.display = "block";
         } else {
-            alert(data.message);
+            alert("❌ 讀取資料失敗: " + data.message);
             resetUI();
         }
-    } catch (e) { alert("讀取失敗"); resetUI(); }
+    } catch (e) { alert("連線讀取失敗"); resetUI(); }
 }
 
 async function doTrade() {
@@ -187,21 +203,21 @@ async function doTrade() {
             alert(`✅ 交易成功！\n新餘額：${data.newBalance}`);
             resetUI();
         } else {
-            alert("❌ 失敗: " + data.message);
+            alert("❌ 寫入失敗: " + data.message);
             btn.disabled = false;
             btn.innerText = "確認送出交易";
         }
-    } catch (e) { alert("連線錯誤"); btn.disabled = false; }
+    } catch (e) { 
+        alert("連線寫入失敗，請確認網路或 GAS 部署版本。"); 
+        btn.disabled = false; 
+    }
 }
 
-// 核心修改：重設後立即執行 startScan()
 function resetUI() {
     document.getElementById("result").style.display = "none";
     document.getElementById("amount").value = 0;
     document.getElementById("ok-btn").disabled = false;
     document.getElementById("ok-btn").innerText = "確認送出交易";
-    
-    // 立即重新開啟鏡頭
     startScan();
 }
 
