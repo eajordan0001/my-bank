@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>優兒行動銀行 v5.1</title>
+    <title>優兒行動銀行 v5.2</title>
     
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
@@ -18,15 +18,15 @@
 
     <style>
         :root { --primary-pink: #e6007e; --bg-pink: #fce4ec; --dark-gray: #333; --btn-light: #eee; }
-        body { font-family: -apple-system, sans-serif; text-align: center; margin: 0; padding: 15px; background-color: var(--primary-pink); }
+        body { font-family: -apple-system, "Noto Sans TC", sans-serif; text-align: center; margin: 0; padding: 15px; background-color: var(--primary-pink); }
         .main-card { background: var(--bg-pink); padding: 20px; border-radius: 30px; max-width: 400px; margin: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); min-height: 85vh; }
         
         #reader { width: 100%; border-radius: 20px; overflow: hidden; background: #000; margin-bottom: 15px; min-height: 250px; }
         
         .info-box { background: rgba(255,255,255,0.5); padding: 15px; border-radius: 20px; margin-bottom: 20px; }
-        .user-id { font-size: 14px; color: #888; margin-bottom: 2px; font-weight: bold; } 
+        .user-id { font-size: 14px; color: #888; font-weight: bold; } 
         .user-name { font-size: 42px; font-weight: 900; color: var(--primary-pink); margin: 0; line-height: 1.1; }
-        .user-balance { font-size: 36px; font-weight: bold; color: #333; margin: 5px 0 0 0; }
+        .user-balance { font-size: 36px; font-weight: bold; color: #333; margin: 5px 0; }
         
         .amount-display { background: white; border: 3px solid var(--dark-gray); border-radius: 15px; font-size: 48px; font-weight: bold; padding: 10px; margin-bottom: 20px; color: #000; }
         
@@ -41,19 +41,27 @@
         .btn-item.active { background: var(--dark-gray); color: white; }
         
         .action-btn { display: block; width: 100%; padding: 18px 0; font-size: 20px; font-weight: bold; border: none; border-radius: 15px; cursor: pointer; margin-bottom: 10px; }
-        .action-btn:disabled { background-color: #ccc !important; cursor: not-allowed; box-shadow: none !important; }
         #start-btn { background: #4CAF50; color: white; }
         #ok-btn { background: var(--primary-pink); color: white; box-shadow: 0 5px 0 #ad005f; }
 
-        /* 自定義彈窗 - 20px 字體與標籤對齊 */
+        /* 自定義彈窗 - 修正對齊跑掉問題 */
         #custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 30px; border-radius: 20px; width: 90%; max-width: 380px; font-size: 20px; color: #333; box-sizing: border-box; }
-        .modal-header { text-align: center; font-weight: bold; color: #28a745; margin-bottom: 15px; font-size: 24px; }
-        .modal-body { text-align: left; border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; padding: 15px 0; margin-bottom: 20px; }
-        .modal-line { margin-bottom: 8px; display: flex; align-items: flex-start; }
-        .modal-label { display: inline-block; width: 110px; flex-shrink: 0; font-weight: bold; }
-        .modal-value { flex-grow: 1; }
-        .modal-btn { width: 100%; padding: 15px; background: var(--primary-pink); color: white; border: none; border-radius: 10px; font-size: 20px; font-weight: bold; }
+        .modal-content { background: white; padding: 30px; border-radius: 20px; width: 92%; max-width: 400px; font-size: 20px; color: #333; box-sizing: border-box; }
+        .modal-header { text-align: center; font-weight: bold; color: #28a745; margin-bottom: 15px; font-size: 26px; }
+        .modal-body { text-align: left; border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; padding: 20px 0; margin-bottom: 20px; }
+        
+        /* 強化對齊結構 */
+        .modal-line { margin-bottom: 12px; display: flex; align-items: center; }
+        .modal-label { 
+            display: inline-block; 
+            width: 140px; /* 加寬確保 20px 標籤有足夠空間 */
+            flex-shrink: 0;
+            font-weight: bold;
+            white-space: nowrap;
+            text-align-last: justify; /* 強制標籤分散對齊 */
+        }
+        .modal-value { flex-grow: 1; padding-left: 5px; }
+        .modal-btn { width: 100%; padding: 18px; background: var(--primary-pink); color: white; border: none; border-radius: 12px; font-size: 22px; font-weight: bold; }
     </style>
 </head>
 
@@ -192,7 +200,12 @@ async function doTrade() {
         const data = await res.json();
         if (data.status === "success") {
             successSound.play().catch(()=>{});
-            let infoHTML = createModalLine("【學員 ID】", globalId) + createModalLine("【學員姓名】", data.name) + createModalLine("【交易項目】", currentNote) + createModalLine("【原金額】", oldBalance) + createModalLine("【變動金額】", (currentAmt > 0 ? "+" : "") + currentAmt) + createModalLine("【新餘額】", data.newBalance);
+            let infoHTML = createModalLine("【學員 ID】", globalId) + 
+                           createModalLine("【學員姓名】", data.name) + 
+                           createModalLine("【交易項目】", currentNote) + 
+                           createModalLine("【原金額】", oldBalance) + 
+                           createModalLine("【變動金額】", (currentAmt > 0 ? "+" : "") + currentAmt) + 
+                           createModalLine("【新餘額】", data.newBalance);
             document.getElementById("modal-body-content").innerHTML = infoHTML;
             document.getElementById("custom-modal").style.display = "flex";
         } else { alert("❌ 失敗：" + data.message); btnOk.disabled = false; btnOk.innerText = "確認交易送出"; }
