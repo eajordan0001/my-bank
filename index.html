@@ -11,15 +11,12 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
 
     <style>
-        /* 基礎設定 */
         body { font-family: sans-serif; text-align: center; margin: 0; padding: 10px; background-color: #f4f4f4; }
         .container { background: white; padding: 15px; border-radius: 15px; max-width: 400px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         
-        /* 標題與掃描器：強制緊湊 */
         h2 { margin: 5px 0 10px 0 !important; font-size: 22px; } 
         #reader { width: 100%; margin-bottom: 5px; border-radius: 10px; overflow: hidden; background-color: #000; }
         
-        /* 姓名區：去除所有預留空白 */
         .info { margin: 0 !important; padding: 0 0 10px 0 !important; border-bottom: 2px dashed #eee; }
         .name { 
             font-size: 38px !important; 
@@ -31,21 +28,18 @@
         }
         .balance { font-size: 32px; font-weight: bold; color: #2c3e50; margin: 5px 0 0 0 !important; }
 
-        /* 金額與按鈕區 */
         .amount-section { background: #fff9fb; padding: 10px; border-radius: 10px; margin-top: 10px; margin-bottom: 15px; }
         input#amount { width: 85%; padding: 10px; font-size: 28px; text-align: center; border: 2px solid #e6007e; border-radius: 10px; margin-bottom: 10px; }
         
         .btn-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
         .btn-quick { background: #fff; border: 1px solid #e6007e; color: #e6007e; padding: 12px 0; border-radius: 5px; font-size: 15px; font-weight: bold; }
 
-        /* 項目選擇：3 欄 4 列 */
         .note-section { text-align: left; margin-bottom: 15px; }
         .note-label { font-size: 14px; font-weight: bold; color: #666; margin-bottom: 5px; display: block; }
         .note-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
         .btn-note { background: #eee; border: none; padding: 12px 0; border-radius: 5px; font-size: 13px; color: #333; }
         .btn-note.active { background: #333; color: #fff; font-weight: bold; }
 
-        /* 底部功能鈕：強制格式統一 */
         .action-btn { 
             display: block;
             width: 100% !important; 
@@ -61,15 +55,14 @@
         
         #ok-btn { background-color: #e6007e; color: white; }
         #ok-btn:disabled { background-color: #ccc; }
-        
         .reset-btn { background-color: #666 !important; color: white !important; } 
-        
         #start-btn { background-color: #4CAF50; color: white; margin-top: 0 !important; }
     </style>
 </head>
 
 <body>
 <div class="container">
+    <!-- 標題已更新 -->
     <h2>💰 優兒行動銀行 💰</h2>
 
     <button id="start-btn" class="action-btn" onclick="startScan()">點擊開啟相機</button>
@@ -115,6 +108,7 @@
         </div>
 
         <button id="ok-btn" class="action-btn" onclick="doTrade()">確認送出交易</button>
+        <!-- 此按鈕點擊後會自動重啟相機 -->
         <button class="reset-btn action-btn" onclick="resetUI()">取消並重新掃描</button>
     </div>
 </div>
@@ -140,7 +134,14 @@ function setNote(btn, noteText) {
 async function startScan() {
     document.getElementById("result").style.display = "none";
     document.getElementById("start-btn").style.display = "none";
+    
     if (!scanner) scanner = new Html5Qrcode("reader");
+    
+    // 如果掃描器已經在跑，先停掉再開，避免衝突
+    if (scanner.isScanning) {
+        await scanner.stop();
+    }
+
     try {
         await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
             globalId = text.trim();
@@ -148,7 +149,7 @@ async function startScan() {
             scanner.stop().then(() => { fetchData(); });
         });
     } catch (err) {
-        alert("相機開啟失敗。");
+        console.error(err);
         document.getElementById("start-btn").style.display = "block";
     }
 }
@@ -193,12 +194,15 @@ async function doTrade() {
     } catch (e) { alert("連線錯誤"); btn.disabled = false; }
 }
 
+// 核心修改：重設後立即執行 startScan()
 function resetUI() {
     document.getElementById("result").style.display = "none";
-    document.getElementById("start-btn").style.display = "block";
     document.getElementById("amount").value = 0;
     document.getElementById("ok-btn").disabled = false;
     document.getElementById("ok-btn").innerText = "確認送出交易";
+    
+    // 立即重新開啟鏡頭
+    startScan();
 }
 
 window.onload = () => { setTimeout(startScan, 500); };
