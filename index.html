@@ -13,12 +13,17 @@
     <style>
         body { font-family: sans-serif; text-align: center; margin: 0; padding: 15px; background-color: #f4f4f4; }
         .container { background: white; padding: 15px; border-radius: 15px; max-width: 400px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        #reader { width: 100%; margin-bottom: 15px; border-radius: 10px; overflow: hidden; background-color: #000; }
         
-        .info { margin-bottom: 15px; padding: 10px; border-bottom: 2px dashed #eee; }
-        .name { font-size: 32px; font-weight: bold; color: #e6007e; }
-        .balance { font-size: 32px; font-weight: bold; color: #2c3e50; }
+        /* 標題與掃描器間距優化 */
+        h2 { margin-top: 5px; margin-bottom: 15px; } 
+        #reader { width: 100%; margin-bottom: 10px; border-radius: 10px; overflow: hidden; background-color: #000; }
+        
+        /* 資訊區：緊湊化處理，去除過多空白 */
+        .info { margin-top: 0; margin-bottom: 15px; padding: 5px 0 15px 0; border-bottom: 2px dashed #eee; }
+        .name { font-size: 36px; font-weight: 900; color: #e6007e; margin: 0; line-height: 1.2; }
+        .balance { font-size: 32px; font-weight: bold; color: #2c3e50; margin-top: 5px; }
 
+        /* 金額與快速按鈕 */
         .amount-section { background: #fff9fb; padding: 10px; border-radius: 10px; margin-bottom: 15px; }
         input#amount { width: 85%; padding: 10px; font-size: 28px; text-align: center; border: 2px solid #e6007e; border-radius: 10px; margin-bottom: 10px; }
         
@@ -26,29 +31,44 @@
         .btn-quick { background: #fff; border: 1px solid #e6007e; color: #e6007e; padding: 10px 0; border-radius: 5px; font-size: 15px; font-weight: bold; }
         .btn-quick:active { background: #e6007e; color: #fff; }
 
-        /* 項目選擇按鈕：12 個按鈕採用 3 欄配置 */
+        /* 項目選擇按鈕 */
         .note-section { text-align: left; margin-bottom: 15px; }
         .note-label { font-size: 14px; font-weight: bold; color: #666; margin-bottom: 8px; display: block; }
         .note-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
         .btn-note { background: #eee; border: none; padding: 12px 0; border-radius: 5px; font-size: 13px; color: #333; }
         .btn-note.active { background: #333; color: #fff; font-weight: bold; }
 
-        button#ok-btn { background-color: #e6007e; color: white; font-weight: bold; padding: 18px; width: 100%; border: none; border-radius: 10px; font-size: 18px; }
-        button#ok-btn:disabled { background-color: #ccc; }
-        .reset-btn { background-color: #666; color: white; margin-top: 10px; }
-        #start-btn { background-color: #4CAF50; color: white; font-weight: bold; padding: 15px; width: 100%; border: none; border-radius: 10px; }
+        /* 底部按鈕：格式統一 */
+        button#ok-btn, .reset-btn, #start-btn { 
+            width: 100%; 
+            padding: 18px; 
+            font-size: 18px; 
+            font-weight: bold; 
+            border: none; 
+            border-radius: 10px; 
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        #ok-btn { background-color: #e6007e; color: white; }
+        #ok-btn:disabled { background-color: #ccc; }
+        
+        .reset-btn { background-color: #666; color: white; } /* 格式與確認鈕一致，僅顏色不同 */
+        
+        #start-btn { background-color: #4CAF50; color: white; margin-top: 0; }
     </style>
 </head>
 
 <body>
 <div class="container">
-    <h2>💰 優兒行動銀行</h2>
+    <h2>💰 優兒行動銀行 💰</h2>
 
     <button id="start-btn" onclick="startScan()">點擊開啟相機</button>
     <div id="reader"></div>
 
     <div id="result" style="display:none;">
         <div class="info">
+            <!-- 調整間隔後的姓名與餘額區 -->
             <div id="name" class="name">---</div>
             <div id="balance" class="balance">---</div>
         </div>
@@ -69,10 +89,9 @@
         </div>
 
         <div class="note-section">
-            <span class="note-label">選擇交易項目（共 12 項）：</span>
+            <span class="note-label">選擇交易項目：</span>
             <div class="note-group" id="noteGroup">
-                <button class="btn-note active" onclick="setNote(this, '一般交易')">一般交易</button>
-                <button class="btn-note" onclick="setNote(this, '餅乾')">餅乾</button>
+                <button class="btn-note active" onclick="setNote(this, '餅乾')">餅乾</button>
                 <button class="btn-note" onclick="setNote(this, '飲料')">飲料</button>
                 <button class="btn-note" onclick="setNote(this, '其他')">其他</button>
                 <button class="btn-note" onclick="setNote(this, '項目 1')">項目 1</button>
@@ -83,11 +102,12 @@
                 <button class="btn-note" onclick="setNote(this, '項目 6')">項目 6</button>
                 <button class="btn-note" onclick="setNote(this, '項目 7')">項目 7</button>
                 <button class="btn-note" onclick="setNote(this, '項目 8')">項目 8</button>
+                <button class="btn-note" onclick="setNote(this, '項目 9')">項目 9</button>
             </div>
         </div>
 
         <button id="ok-btn" onclick="doTrade()">確認送出交易</button>
-        <button class="reset-btn" onclick="resetUI()">取消掃描</button>
+        <button class="reset-btn" onclick="resetUI()">取消並重新掃描</button>
     </div>
 </div>
 
