@@ -223,9 +223,9 @@ async function doTrade() {
                 "【學員 ID】： " + globalId + "\n" +
                 "【學員姓名】： " + data.name + "\n" +
                 "【交易項目】： " + currentNote + "\n" +
-                "【原金額】： " + oldBalance + "\n" +
+                "【原 金 額】： " + oldBalance + "\n" +
                 "【變動金額】： " + (currentAmt > 0 ? "+" : "") + currentAmt + "\n" +
-                "【新餘額】： " + data.newBalance;
+                "【新 餘 額】： " + data.newBalance;
             
             document.getElementById("modal-body-text").innerText = infoText;
             document.getElementById("custom-modal").style.display = "flex";
