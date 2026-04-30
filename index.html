@@ -13,14 +13,15 @@
     <script>
         /**
          * 自動版本跳轉與強制更新機制
-         * 版本號已更新至 2.2
+         * 每次更新代碼請手動增加此數字
          */
         (function() {
-            const CURRENT_VERSION = "2.2"; 
+            const CURRENT_VERSION = "2.3"; 
             const cachedVersion = localStorage.getItem('app_version');
 
             if (cachedVersion !== CURRENT_VERSION) {
                 localStorage.setItem('app_version', CURRENT_VERSION);
+                // 透過網址參數強制瀏覽器抓取伺服器上的最新檔案
                 window.location.href = window.location.pathname + '?v=' + CURRENT_VERSION;
             }
         })();
@@ -109,7 +110,7 @@
             <div class="note-group" id="noteGroup">
                 <button class="btn-note active" onclick="setNote(this, '一般交易')">一般交易</button>
                 <button class="btn-note" onclick="setNote(this, '餅乾')">餅乾</button>
-                <button class="btn-note" onclick="setNote(this, '飲料')">飲料</button>
+                <button class="btn-note" onclick="飲料')">飲料</button>
                 <button class="btn-note" onclick="setNote(this, '其他')">其他</button>
                 <button class="btn-note" onclick="setNote(this, '項目 1')">項目 1</button>
                 <button class="btn-note" onclick="setNote(this, '項目 2')">項目 2</button>
@@ -133,9 +134,19 @@ const TOKEN = "abc123";
 
 let scanner, globalId = "", tid = "", currentNote = "一般交易";
 
-// 提示音資源
-const successSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"); // 交易成功音
-const scanSound = new Audio("https://raw.githubusercontent.com/fevabe/qr-scanner-beep/main/beep.mp3"); // 掃描嗶聲
+// --- 音效處理 ---
+const successSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
+const scanSound = new Audio("https://raw.githubusercontent.com/fevabe/qr-scanner-beep/main/beep.mp3");
+successSound.preload = "auto";
+scanSound.preload = "auto";
+
+// 解鎖音效權限 (解決行動裝置瀏覽器限制)
+function unlockAudio() {
+    scanSound.play().then(() => {
+        scanSound.pause();
+        scanSound.currentTime = 0;
+    }).catch(e => console.log("Audio unlock interaction needed"));
+}
 
 function addAmt(val) {
     let input = document.getElementById("amount");
@@ -149,6 +160,7 @@ function setNote(btn, noteText) {
 }
 
 async function startScan() {
+    unlockAudio(); // 使用者點擊時解鎖音效
     document.getElementById("result").style.display = "none";
     document.getElementById("start-btn").style.display = "none";
     
@@ -157,8 +169,11 @@ async function startScan() {
 
     try {
         await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-            // 掃描成功觸發：播放嗶聲並振動
-            scanSound.play().catch(e => console.log("音效播放受限"));
+            // 掃描成功：播放音效並振動
+            try {
+                scanSound.currentTime = 0;
+                scanSound.play();
+            } catch (e) {}
             if (navigator.vibrate) navigator.vibrate(50);
             
             globalId = text.trim();
@@ -208,8 +223,9 @@ async function doTrade() {
             btn.innerText = "確認送出交易";
         }
     } catch (e) { 
-        alert("連線寫入失敗，請確認網路或 GAS 部署版本。"); 
+        alert("連線寫入失敗"); 
         btn.disabled = false; 
+        btn.innerText = "確認送出交易";
     }
 }
 
@@ -221,6 +237,7 @@ function resetUI() {
     startScan();
 }
 
+// 頁面加載完成後 0.5 秒自動嘗試開啟相機
 window.onload = () => { setTimeout(startScan, 500); };
 </script>
 </body>
