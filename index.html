@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>優兒行動銀行 v5.2</title>
+    <title>優兒行動銀行 v5.3</title>
     
+    <!-- PWA 圖示設定 -->
     <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
     <link rel="apple-touch-icon" href="./icon-512.png">
@@ -17,7 +18,7 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
 
     <style>
-        :root { --primary-pink: #e6007e; --bg-pink: #fce4ec; --dark-gray: #333; --btn-light: #eee; }
+        :root { --primary-pink: #e6007e; --bg-pink: #fce4ec; --dark-gray: #333; --btn-light: #eee; --disabled-gray: #999; }
         body { font-family: -apple-system, "Noto Sans TC", sans-serif; text-align: center; margin: 0; padding: 15px; background-color: var(--primary-pink); }
         .main-card { background: var(--bg-pink); padding: 20px; border-radius: 30px; max-width: 400px; margin: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); min-height: 85vh; }
         
@@ -28,7 +29,13 @@
         .user-name { font-size: 42px; font-weight: 900; color: var(--primary-pink); margin: 0; line-height: 1.1; }
         .user-balance { font-size: 36px; font-weight: bold; color: #333; margin: 5px 0; }
         
-        .amount-display { background: white; border: 3px solid var(--dark-gray); border-radius: 15px; font-size: 48px; font-weight: bold; padding: 10px; margin-bottom: 20px; color: #000; }
+        /* 輸入框樣式優化 */
+        .input-group { margin-bottom: 20px; }
+        .amount-input { 
+            width: 80%; border: 3px solid var(--dark-gray); border-radius: 15px; 
+            font-size: 42px; font-weight: bold; padding: 10px; text-align: center;
+            outline: none; color: #000;
+        }
         
         .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
         .btn-quick { background: white; border: none; border-radius: 15px; padding: 15px 0; font-size: 18px; font-weight: bold; box-shadow: 0 4px 0 #ddd; }
@@ -41,25 +48,19 @@
         .btn-item.active { background: var(--dark-gray); color: white; }
         
         .action-btn { display: block; width: 100%; padding: 18px 0; font-size: 20px; font-weight: bold; border: none; border-radius: 15px; cursor: pointer; margin-bottom: 10px; }
+        .action-btn:disabled { background: var(--disabled-gray) !important; box-shadow: none !important; cursor: not-allowed; color: #ddd !important; }
+        
         #start-btn { background: #4CAF50; color: white; }
         #ok-btn { background: var(--primary-pink); color: white; box-shadow: 0 5px 0 #ad005f; }
+        #reset-btn { background: #666; color: white; }
 
-        /* 自定義彈窗 - 修正對齊跑掉問題 */
+        /* 彈窗樣式 */
         #custom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 30px; border-radius: 20px; width: 92%; max-width: 400px; font-size: 20px; color: #333; box-sizing: border-box; }
         .modal-header { text-align: center; font-weight: bold; color: #28a745; margin-bottom: 15px; font-size: 26px; }
         .modal-body { text-align: left; border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; padding: 20px 0; margin-bottom: 20px; }
-        
-        /* 強化對齊結構 */
         .modal-line { margin-bottom: 12px; display: flex; align-items: center; }
-        .modal-label { 
-            display: inline-block; 
-            width: 140px; /* 加寬確保 20px 標籤有足夠空間 */
-            flex-shrink: 0;
-            font-weight: bold;
-            white-space: nowrap;
-            text-align-last: justify; /* 強制標籤分散對齊 */
-        }
+        .modal-label { display: inline-block; width: 140px; flex-shrink: 0; font-weight: bold; white-space: nowrap; text-align-last: justify; }
         .modal-value { flex-grow: 1; padding-left: 5px; }
         .modal-btn { width: 100%; padding: 18px; background: var(--primary-pink); color: white; border: none; border-radius: 12px; font-size: 22px; font-weight: bold; }
     </style>
@@ -78,7 +79,11 @@
             <div style="font-size:14px; color:#666; margin-top:5px;">目前餘額</div>
             <div id="display-balance" class="user-balance">---</div>
         </div>
-        <div id="amount-val" class="amount-display">0</div>
+        
+        <div class="input-group">
+            <div style="font-size:14px; color:#555; margin-bottom:5px; font-weight:bold;">異動金額 (可手動修改)</div>
+            <input type="number" id="amount-input" class="amount-input" value="0" oninput="manualInput(this.value)">
+        </div>
         
         <div class="grid-4">
             <button class="btn-quick q-plus" onclick="modAmt(1)">+1</button>
@@ -108,7 +113,7 @@
         </div>
 
         <button id="ok-btn" class="action-btn" onclick="doTrade()">確認交易送出</button>
-        <button id="reset-btn" class="action-btn" style="background:#666; color:white;" onclick="resetToScan()">取消 / 重新掃描</button>
+        <button id="reset-btn" class="action-btn" onclick="resetToScan()">取消 / 重新掃描</button>
     </div>
 </div>
 
@@ -174,16 +179,32 @@ async function fetchData() {
     } catch (e) { alert("連線失敗"); resetToScan(); }
 }
 
-function modAmt(v) { currentAmt += v; document.getElementById("amount-val").innerText = currentAmt; }
-function setNote(btn, note) { document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('active')); btn.classList.add('active'); currentNote = note; }
+function modAmt(v) { 
+    currentAmt += v; 
+    document.getElementById("amount-input").value = currentAmt; 
+}
+
+function manualInput(val) {
+    currentAmt = parseInt(val) || 0;
+}
+
+function setNote(btn, note) { 
+    document.querySelectorAll('.btn-item').forEach(b => b.classList.remove('active')); 
+    btn.classList.add('active'); 
+    currentNote = note; 
+}
 
 function resetToScan() {
     globalId = ""; currentAmt = 0; currentNote = "餅乾";
-    document.getElementById("amount-val").innerText = "0";
+    document.getElementById("amount-input").value = "0";
     document.getElementById("trade-ui").style.display = "none";
     document.getElementById("reader").style.display = "block";
-    document.getElementById("ok-btn").disabled = false;
-    document.getElementById("ok-btn").innerText = "確認交易送出";
+    
+    const btnOk = document.getElementById("ok-btn");
+    const btnReset = document.getElementById("reset-btn");
+    btnOk.disabled = false; btnOk.innerText = "確認交易送出";
+    btnReset.disabled = false;
+    
     document.querySelectorAll('.btn-item').forEach((b, i) => b.classList.toggle('active', i === 0));
     startScan();
 }
@@ -194,7 +215,13 @@ function createModalLine(label, value) { return `<div class="modal-line"><span c
 async function doTrade() {
     if (currentAmt === 0) return alert("請輸入金額");
     const btnOk = document.getElementById("ok-btn");
-    btnOk.disabled = true; btnOk.innerText = "⏳ 交易處理中...";
+    const btnReset = document.getElementById("reset-btn");
+    
+    // 進入交易狀態：按鈕變灰色與顯示漏斗
+    btnOk.disabled = true; 
+    btnOk.innerText = "⏳ 交易進行中";
+    btnReset.disabled = true;
+    
     try {
         const res = await fetch(`${scriptURL}?id=${globalId}&amount=${currentAmt}&token=${TOKEN}&note=${encodeURIComponent(currentNote)}&tid=T${Date.now()}`);
         const data = await res.json();
@@ -208,8 +235,16 @@ async function doTrade() {
                            createModalLine("【新餘額】", data.newBalance);
             document.getElementById("modal-body-content").innerHTML = infoHTML;
             document.getElementById("custom-modal").style.display = "flex";
-        } else { alert("❌ 失敗：" + data.message); btnOk.disabled = false; btnOk.innerText = "確認交易送出"; }
-    } catch (e) { alert("網路錯誤"); btnOk.disabled = false; btnOk.innerText = "確認交易送出"; }
+        } else { 
+            alert("❌ 失敗：" + data.message); 
+            btnOk.disabled = false; btnOk.innerText = "確認交易送出";
+            btnReset.disabled = false;
+        }
+    } catch (e) { 
+        alert("網路錯誤"); 
+        btnOk.disabled = false; btnOk.innerText = "確認交易送出";
+        btnReset.disabled = false;
+    }
 }
 </script>
 </body>
