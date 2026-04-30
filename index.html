@@ -12,13 +12,12 @@
 
     <script>
         /**
-         * 自動版本跳轉與強制更新機制
-         * 版本號更新至 2.6
+         * 版本號更新至 2.7
+         * 修正：移除自動啟動，強制使用者手動點擊按鈕以解鎖音效權限
          */
         (function() {
-            const CURRENT_VERSION = "2.6"; 
+            const CURRENT_VERSION = "2.7"; 
             const cachedVersion = localStorage.getItem('app_version');
-
             if (cachedVersion !== CURRENT_VERSION) {
                 localStorage.setItem('app_version', CURRENT_VERSION);
                 window.location.href = window.location.pathname + '?v=' + CURRENT_VERSION;
@@ -30,23 +29,31 @@
         body { font-family: sans-serif; text-align: center; margin: 0; padding: 10px; background-color: #f4f4f4; }
         .container { background: white; padding: 15px; border-radius: 15px; max-width: 400px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         h2 { margin: 5px 0 10px 0 !important; font-size: 22px; } 
-        #reader { width: 100%; margin-bottom: 5px; border-radius: 10px; overflow: hidden; background-color: #000; }
-        .name { font-size: 38px !important; font-weight: 900 !important; color: #e6007e; margin: 0 !important; padding: 0 !important; line-height: 1.1; }
+        #reader { width: 100%; margin-bottom: 5px; border-radius: 10px; overflow: hidden; background-color: #000; min-height: 250px; }
+        .name { font-size: 38px !important; font-weight: 900 !important; color: #e6007e; margin: 0 !important; line-height: 1.1; }
         .balance { font-size: 32px; font-weight: bold; color: #2c3e50; margin: 5px 0 0 0 !important; }
         .amount-section { background: #fff9fb; padding: 10px; border-radius: 10px; margin-top: 10px; margin-bottom: 15px; }
         input#amount { width: 85%; padding: 10px; font-size: 28px; text-align: center; border: 2px solid #e6007e; border-radius: 10px; margin-bottom: 10px; }
         .btn-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
         .btn-quick { background: #fff; border: 1px solid #e6007e; color: #e6007e; padding: 12px 0; border-radius: 5px; font-size: 15px; font-weight: bold; }
         .note-section { text-align: left; margin-bottom: 15px; }
-        .note-label { font-size: 14px; font-weight: bold; color: #666; margin-bottom: 5px; display: block; }
         .note-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
         .btn-note { background: #eee; border: none; padding: 12px 0; border-radius: 5px; font-size: 13px; color: #333; }
         .btn-note.active { background: #333; color: #fff; font-weight: bold; }
         .action-btn { display: block; width: 100% !important; padding: 18px 0 !important; font-size: 20px !important; font-weight: bold !important; border: none !important; border-radius: 10px !important; cursor: pointer; margin-top: 12px !important; box-sizing: border-box; }
         #ok-btn { background-color: #e6007e; color: white; }
-        #ok-btn:disabled { background-color: #ccc; }
-        .reset-btn { background-color: #666 !important; color: white !important; } 
-        #start-btn { background-color: #4CAF50; color: white; margin-top: 0 !important; }
+        #start-btn { 
+            background-color: #4CAF50; 
+            color: white; 
+            margin: 20px 0 !important;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 
@@ -54,11 +61,12 @@
 <div class="container">
     <h2>💰 優兒行動銀行 💰</h2>
 
-    <button id="start-btn" class="action-btn" onclick="handleStartClick()">點擊開啟相機</button>
+    <!-- 啟動按鈕改為顯眼的強制進入點 -->
+    <button id="start-btn" class="action-btn" onclick="handleStartClick()">📢 點此啟動相機並開啟音效</button>
     <div id="reader"></div>
 
     <div id="result" style="display:none;">
-        <div class="info">
+        <div class="info" style="border-bottom: 2px dashed #eee; padding-bottom:10px;">
             <div id="name" class="name">---</div>
             <div id="balance" class="balance">---</div>
         </div>
@@ -79,8 +87,8 @@
         </div>
 
         <div class="note-section">
-            <span class="note-label">選擇交易項目：</span>
-            <div class="note-group" id="noteGroup">
+            <span style="font-size:14px; font-weight:bold; color:#666;">選擇交易項目：</span>
+            <div class="note-group">
                 <button class="btn-note active" onclick="setNote(this, '一般交易')">一般交易</button>
                 <button class="btn-note" onclick="setNote(this, '餅乾')">餅乾</button>
                 <button class="btn-note" onclick="setNote(this, '飲料')">飲料</button>
@@ -107,25 +115,26 @@ const TOKEN = "abc123";
 
 let scanner, globalId = "", tid = "", currentNote = "一般交易";
 
-// --- 音效資源 ---
 const successSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
 const scanSound = new Audio("https://raw.githubusercontent.com/fevabe/qr-scanner-beep/main/beep.mp3");
+
+// 確保跨網域資源可播放
 scanSound.crossOrigin = "anonymous";
 successSound.crossOrigin = "anonymous";
 
-// 點擊按鈕的進入點：同時啟動解鎖與掃描
 function handleStartClick() {
+    // 1. 先播放一個靜音片段解鎖音效權限
     unlockAudio();
+    // 2. 隨後啟動相機
     startScan();
 }
 
-// 關鍵解鎖：播放極短的靜音片段來騙過瀏覽器
 function unlockAudio() {
     [scanSound, successSound].forEach(sound => {
         sound.play().then(() => {
             sound.pause();
             sound.currentTime = 0;
-        }).catch(e => console.log("等待手動解鎖音效..."));
+        }).catch(e => console.log("音效解鎖失敗"));
     });
 }
 
@@ -149,17 +158,13 @@ async function startScan() {
 
     try {
         await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-            // 掃描成功第一步：發出嗶聲
+            // 掃描成功播放嗶聲
             try {
                 scanSound.currentTime = 0;
-                let playPromise = scanSound.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(error => { console.log("嗶聲播放被攔截"); });
-                }
+                scanSound.play();
             } catch (e) {}
             
             if (navigator.vibrate) navigator.vibrate(50);
-            
             globalId = text.trim();
             tid = "T" + Date.now();
             scanner.stop().then(() => { fetchData(); });
@@ -177,11 +182,8 @@ async function fetchData() {
             document.getElementById("name").innerText = data.name;
             document.getElementById("balance").innerText = "餘額: " + data.balance;
             document.getElementById("result").style.display = "block";
-        } else {
-            alert("❌ 讀取資料失敗: " + data.message);
-            resetUI();
-        }
-    } catch (e) { alert("連線讀取失敗"); resetUI(); }
+        } else { alert("❌ 讀取失敗"); resetUI(); }
+    } catch (e) { alert("連線失敗"); resetUI(); }
 }
 
 async function doTrade() {
@@ -191,37 +193,26 @@ async function doTrade() {
     if (!confirm(`對象: ${document.getElementById("name").innerText}\n項目: ${currentNote}\n金額: ${amt}\n確認執行？`)) return;
 
     btn.disabled = true;
-    btn.innerText = "處理中...";
     try {
         const url = `${scriptURL}?id=${globalId}&amount=${amt}&tid=${tid}&token=${TOKEN}&note=${encodeURIComponent(currentNote)}`;
         const res = await fetch(url);
         const data = await res.json();
         if (data.status === "success") {
-            if (navigator.vibrate) navigator.vibrate(100);
             successSound.play().catch(() => {});
-            alert(`✅ 交易成功！\n新餘額：${data.newBalance}`);
+            alert(`✅ 交易成功！\n餘額：${data.newBalance}`);
             resetUI();
-        } else {
-            alert("❌ 寫入失敗: " + data.message);
-            btn.disabled = false;
-            btn.innerText = "確認送出交易";
-        }
-    } catch (e) { 
-        alert("連線寫入失敗"); 
-        btn.disabled = false; 
-        btn.innerText = "確認送出交易";
-    }
+        } else { alert("失敗"); btn.disabled = false; }
+    } catch (e) { alert("錯誤"); btn.disabled = false; }
 }
 
 function resetUI() {
     document.getElementById("result").style.display = "none";
     document.getElementById("amount").value = 0;
     document.getElementById("ok-btn").disabled = false;
-    document.getElementById("ok-btn").innerText = "確認送出交易";
     startScan();
 }
 
-window.onload = () => { setTimeout(startScan, 500); };
+// 注意：這裡移除了 window.onload 自動啟動 scan 的邏輯
 </script>
 </body>
 </html>
