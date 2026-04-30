@@ -1,6 +1,6 @@
 {
   "name": "優兒行動銀行系統",
-  "short_name": "優兒銀行",
+  "short_name": "優兒行動銀行",
   "description": "行動 QR Code 銀行加值扣款系統",
   "start_url": "index.html",
   "display": "standalone",
