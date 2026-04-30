@@ -12,11 +12,11 @@
 
     <script>
         /**
-         * 版本號更新至 2.7
-         * 修正：移除自動啟動，強制使用者手動點擊按鈕以解鎖音效權限
+         * 版本號更新至 2.8
+         * 修正：延遲掃描器初始化，確保不點按鈕絕不啟動相機
          */
         (function() {
-            const CURRENT_VERSION = "2.7"; 
+            const CURRENT_VERSION = "2.8"; 
             const cachedVersion = localStorage.getItem('app_version');
             if (cachedVersion !== CURRENT_VERSION) {
                 localStorage.setItem('app_version', CURRENT_VERSION);
@@ -47,12 +47,6 @@
             color: white; 
             margin: 20px 0 !important;
             box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); }
         }
     </style>
 </head>
@@ -61,7 +55,6 @@
 <div class="container">
     <h2>💰 優兒行動銀行 💰</h2>
 
-    <!-- 啟動按鈕改為顯眼的強制進入點 -->
     <button id="start-btn" class="action-btn" onclick="handleStartClick()">📢 點此啟動相機並開啟音效</button>
     <div id="reader"></div>
 
@@ -113,19 +106,18 @@
 const scriptURL = "https://script.google.com/macros/s/AKfycbzI8YIKfK2h5MVeUOWE1oJq4mHu4KguUOVS_gt0wZdHvSz1AaDaOaE8jCD0rmz9q9SV/exec";
 const TOKEN = "abc123";
 
-let scanner, globalId = "", tid = "", currentNote = "一般交易";
+let scanner = null; // 初始化為 null
+let globalId = "", tid = "", currentNote = "一般交易";
 
 const successSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
 const scanSound = new Audio("https://raw.githubusercontent.com/fevabe/qr-scanner-beep/main/beep.mp3");
-
-// 確保跨網域資源可播放
 scanSound.crossOrigin = "anonymous";
 successSound.crossOrigin = "anonymous";
 
 function handleStartClick() {
-    // 1. 先播放一個靜音片段解鎖音效權限
+    // 只有點按鈕時才解鎖音效
     unlockAudio();
-    // 2. 隨後啟動相機
+    // 只有點按鈕時才執行啟動函式
     startScan();
 }
 
@@ -134,7 +126,7 @@ function unlockAudio() {
         sound.play().then(() => {
             sound.pause();
             sound.currentTime = 0;
-        }).catch(e => console.log("音效解鎖失敗"));
+        }).catch(e => console.log("等待手動點擊解鎖音效"));
     });
 }
 
@@ -153,8 +145,14 @@ async function startScan() {
     document.getElementById("result").style.display = "none";
     document.getElementById("start-btn").style.display = "none";
     
-    if (!scanner) scanner = new Html5Qrcode("reader");
-    if (scanner.isScanning) await scanner.stop();
+    // 關鍵修正：只有在這裡才真正建立 scanner 實體
+    if (!scanner) {
+        scanner = new Html5Qrcode("reader");
+    }
+    
+    if (scanner.isScanning) {
+        await scanner.stop();
+    }
 
     try {
         await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
@@ -170,6 +168,7 @@ async function startScan() {
             scanner.stop().then(() => { fetchData(); });
         });
     } catch (err) {
+        console.error("掃描啟動失敗", err);
         document.getElementById("start-btn").style.display = "block";
     }
 }
@@ -209,10 +208,11 @@ function resetUI() {
     document.getElementById("result").style.display = "none";
     document.getElementById("amount").value = 0;
     document.getElementById("ok-btn").disabled = false;
+    // 重新回到掃描狀態
     startScan();
 }
 
-// 注意：這裡移除了 window.onload 自動啟動 scan 的邏輯
+// 徹底刪除 window.onload = () => { setTimeout(startScan, 500); };
 </script>
 </body>
 </html>
