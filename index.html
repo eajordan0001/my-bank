@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>優兒行動銀行 v4.1</title>
+    <title>優兒行動銀行 v4.2</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
 
     <script>
         (function() {
-            const CURRENT_VERSION = "4.1"; 
+            const CURRENT_VERSION = "4.2"; 
             const cachedVersion = localStorage.getItem('app_version');
             if (cachedVersion !== CURRENT_VERSION) {
                 localStorage.setItem('app_version', CURRENT_VERSION);
@@ -22,18 +22,22 @@
         body { font-family: -apple-system, sans-serif; text-align: center; margin: 0; padding: 15px; background-color: var(--primary-pink); }
         .main-card { background: var(--bg-pink); padding: 20px; border-radius: 30px; max-width: 400px; margin: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); min-height: 85vh; }
         #reader { width: 100%; border-radius: 20px; overflow: hidden; background: #000; margin-bottom: 15px; }
+        
         .info-box { background: rgba(255,255,255,0.5); padding: 15px; border-radius: 20px; margin-bottom: 20px; }
-        .user-id { font-size: 14px; color: #888; margin-bottom: 2px; font-weight: bold; } /* 1/3 姓名大小 */
+        .user-id { font-size: 14px; color: #888; margin-bottom: 2px; font-weight: bold; } /* 姓名 1/3 大小 */
         .user-name { font-size: 42px; font-weight: 900; color: var(--primary-pink); margin: 0; line-height: 1.1; }
         .user-balance { font-size: 36px; font-weight: bold; color: #333; margin: 5px 0 0 0; }
+        
         .amount-display { background: white; border: 3px solid #333; border-radius: 15px; font-size: 48px; font-weight: bold; padding: 10px; margin-bottom: 20px; color: #000; }
         .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
         .btn-quick { background: white; border: none; border-radius: 15px; padding: 15px 0; font-size: 18px; font-weight: bold; box-shadow: 0 4px 0 #ddd; }
         .btn-quick:active { transform: translateY(2px); box-shadow: none; }
         .q-plus { color: #4caf50; } .q-minus { color: #f44336; }
+        
         .grid-3 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
         .btn-item { background: var(--btn-gray); border: none; border-radius: 10px; padding: 12px 5px; font-size: 12px; font-weight: bold; color: #444; }
         .btn-item.active { background: var(--primary-pink); color: white; }
+        
         .action-btn { display: block; width: 100%; padding: 18px 0; font-size: 20px; font-weight: bold; border: none; border-radius: 15px; cursor: pointer; margin-bottom: 10px; }
         #start-btn { background: #4CAF50; color: white; }
         #ok-btn { background: var(--primary-pink); color: white; box-shadow: 0 5px 0 #ad005f; }
@@ -88,22 +92,27 @@ const scriptURL = "https://script.google.com/macros/s/AKfycbzI8YIKfK2h5MVeUOWE1o
 const TOKEN = "abc123";
 let scanner = null, globalId = "", currentAmt = 0, currentNote = "其他";
 
-// 網址除錯：如果 GitHub 網址失效，將自動切換到備用音效
-const BEEP_URL = "https://raw.githubusercontent.com/eajordan0001/eajordan0001.github.io/main/Beep.mp3";
-const FALLBACK_BEEP = "https://www.soundjay.com/buttons/beep-07a.mp3"; 
-const SUCCESS_URL = "https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg";
+// 使用 Web Audio API 生成音效 (免外部連結，防404)
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playBeep(freq = 800, duration = 0.1) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+}
 
-let scanSound = null;
-let successSound = null;
+// 成功音效 (Google 穩定連結)
+const successSound = new Audio("https://actions.google.com/sounds/v1/ui/notification_simple_01.ogg");
+successSound.crossOrigin = "anonymous";
 
 function initAndStart() {
-    // 只有在使用者點擊那一刻才建立 Audio 物件，徹底避免自動解鎖產生的雜音
-    scanSound = new Audio(BEEP_URL);
-    successSound = new Audio(SUCCESS_URL);
-    
-    // 檢查 GitHub 檔案是否有效
-    scanSound.onerror = () => { scanSound.src = FALLBACK_BEEP; };
-
+    if (audioCtx.state === 'suspended') audioCtx.resume();
     document.getElementById("start-btn").style.display = "none";
     document.getElementById("reader").style.display = "block";
     setTimeout(startScan, 300);
@@ -113,7 +122,7 @@ async function startScan() {
     if (!scanner) scanner = new Html5Qrcode("reader");
     try {
         await scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-            if (scanSound) scanSound.play().catch(()=>{});
+            playBeep(); // 掃描成功發出內建嗶聲
             if (navigator.vibrate) navigator.vibrate(50);
             globalId = text.trim();
             scanner.stop().then(() => fetchData());
@@ -148,7 +157,7 @@ async function doTrade() {
         const res = await fetch(url);
         const data = await res.json();
         if (data.status === "success") {
-            if (successSound) successSound.play().catch(()=>{});
+            successSound.play().catch(()=>{});
             alert(`✅ 交易成功！\n餘額：${data.newBalance}`);
             location.reload();
         }
