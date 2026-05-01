@@ -137,14 +137,14 @@ function playBeep(freq = 850, duration = 0.15) {
     const gain = audioCtx.createGain();
     osc.type = "sine";
     osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-    gain.gain.setValueAtTime(0.5, audioCtx.currentTime); 
+    gain.gain.setValueAtTime(0.8, audioCtx.currentTime); 
     osc.connect(gain); gain.connect(audioCtx.destination);
     osc.start(); osc.stop(audioCtx.currentTime + duration);
 }
 
 const successSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");
 successSound.crossOrigin = "anonymous";
-successSound.volume = 0.4;
+successSound.volume = 0.3;
 
 function initAndStart() {
     if (audioCtx.state === 'suspended') audioCtx.resume();
