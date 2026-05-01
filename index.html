@@ -131,7 +131,7 @@ const TOKEN = "abc123";
 let scanner = null, globalId = "", currentAmt = 0, currentNote = "餅乾", oldBalance = 0;
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function playBeep(freq = 1200, duration = 0.15) {
+function playBeep(freq = 1200, duration = 0.1) {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
